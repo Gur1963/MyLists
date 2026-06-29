@@ -457,6 +457,15 @@ async function loadFromCloud() {
     if (snap.exists()) {
       data = snap.data();
       if (!data.template) data.template = [];
+    } else {
+      // העברת נתונים ישנים מ-gurgurs אם קיימים
+      const oldDoc  = doc(db, "users", "gurgurs");
+      const oldSnap = await getDoc(oldDoc);
+      if (oldSnap.exists()) {
+        data = oldSnap.data();
+        if (!data.template) data.template = [];
+        await setDoc(DOC, data);
+      }
     }
   } catch(e) {
     console.error("שגיאת טעינה:", e);
