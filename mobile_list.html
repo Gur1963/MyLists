@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>רשימות — הדמיית טלפון</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f5f5f5;
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    height: 100vh; overflow: hidden;
+  }
+
+  .phone {
+    width: 100%; height: 100vh;
+    background: #f5f5f5;
+    position: relative; display: flex; flex-direction: column;
+  }
+  .phone-screen {
+    flex: 1; background: #f5f5f5;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .notch { display: none; }
+  .status-bar { display: none; }
+
+  /* Screens */
+  .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* Home */
+  .home-header {
+    background: linear-gradient(135deg, #4a90d9, #357abd);
+    padding: 18px 20px 24px; color: #fff;
+  }
+  .home-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .home-header p  { font-size: 13px; opacity: .8; }
+
+  .lists-container { flex: 1; overflow-y: auto; padding: 16px 16px 80px; }
+
+  .list-card {
+    background: #fff; border-radius: 16px; padding: 14px 16px;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer;
+    transition: transform .1s; -webkit-tap-highlight-color: transparent;
+  }
+  .list-card:active { transform: scale(.97); }
+  .list-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .list-info { flex: 1; }
+  .list-name { font-size: 15px; font-weight: 600; color: #222; }
+  .list-meta { font-size: 11px; color: #999; margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+  .type-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+  }
+  .list-arrow { color: #ccc; font-size: 18px; }
+  .card-action-btn {
+    background: none; border: none; font-size: 18px;
+    cursor: pointer; padding: 6px; border-radius: 8px;
+    color: #aaa; transition: background .15s;
+  }
+  .card-action-btn:active { background: #eee; }
+
+  /* FAB area */
+  .fab-area {
+    display: flex; gap: 12px; align-items: center; justify-content: center;
+    padding: 10px 0 10px;
+  }
+  .fab {
+    width: 56px; height: 56px; background: #4a90d9; border-radius: 50%;
+    border: none; color: #fff; font-size: 28px; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(74,144,217,.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fab-template {
+    width: 44px; height: 44px; background: #8e44ad; border-radius: 50%;
+    border: none; color: #fff; font-size: 20px; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(142,68,173,.4);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(0,0,0,.4); border-radius: 36px;
+    z-index: 50; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: #fff; width: 100%;
+    border-radius: 24px 24px 0 0; padding: 20px 20px 36px;
+  }
+  .modal-handle {
+    width: 40px; height: 4px; background: #ddd;
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .modal-sheet h2 { font-size: 17px; margin-bottom: 14px; color: #222; }
+
+  /* Type selector */
+  .type-selector { display: flex; gap: 10px; margin-bottom: 16px; }
+  .type-opt {
+    flex: 1; padding: 12px 8px; border-radius: 12px;
+    border: 2px solid #eee; background: #f8f8f8;
+    cursor: pointer; text-align: center; transition: all .15s;
+  }
+  .type-opt .type-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+  .type-opt .type-label { font-size: 12px; font-weight: 600; color: #555; }
+  .type-opt.selected { border-color: #4a90d9; background: #e8f2fd; }
+  .type-opt.selected .type-label { color: #4a90d9; }
+
+  .emoji-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .emoji-btn {
+    width: 38px; height: 38px; border-radius: 10px;
+    border: 2px solid #eee; background: #f8f8f8; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .emoji-btn.selected { border-color: #4a90d9; background: #e8f2fd; }
+
+  .modal-input {
+    width: 100%; padding: 11px 13px;
+    border: 1.5px solid #ddd; border-radius: 12px;
+    font-size: 15px; font-family: inherit;
+    text-align: right; direction: rtl; outline: none; margin-bottom: 12px;
+  }
+  .modal-input:focus { border-color: #4a90d9; }
+  .modal-btn {
+    width: 100%; padding: 13px; background: #4a90d9; color: #fff;
+    border: none; border-radius: 14px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* Detail header */
+  .detail-header {
+    padding: 16px 16px 18px; display: flex; align-items: center;
+    gap: 10px; color: #fff;
+  }
+  .back-btn {
+    background: rgba(255,255,255,.2); border: none; color: #fff;
+    width: 34px; height: 34px; border-radius: 10px; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .detail-title { font-size: 19px; font-weight: 700; flex: 1; }
+  .detail-icon-big { font-size: 26px; }
+
+  /* Add bar — shopping */
+  .add-bar-simple {
+    background: #fff; padding: 10px 12px;
+    display: flex; gap: 8px; border-bottom: 1px solid #eee;
+  }
+
+  /* Add bar — tasks (two rows) */
+  .add-bar-task {
+    background: #fff; padding: 10px 12px 8px;
+    border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 7px;
+  }
+  .add-bar-row { display: flex; gap: 7px; }
+
+  .add-input {
+    flex: 1; padding: 9px 11px;
+    border: 1.5px solid #ddd; border-radius: 10px;
+    font-size: 14px; font-family: inherit;
+    text-align: right; direction: rtl; outline: none;
+  }
+  .add-input:focus { border-color: #4a90d9; }
+
+  .add-btn {
+    color: #fff; border: none; border-radius: 10px;
+    width: 38px; font-size: 22px; cursor: pointer; flex-shrink: 0;
+  }
+
+  /* Priority selector inline */
+  .pri-sel {
+    display: flex; gap: 5px;
+  }
+  .pri-btn {
+    flex: 1; padding: 7px 4px; border-radius: 8px; border: 2px solid transparent;
+    font-size: 11px; font-weight: 700; cursor: pointer; text-align: center;
+    transition: border-color .15s;
+  }
+  .pri-btn.sel { border-color: #333; }
+
+  /* Date input */
+  .date-input {
+    flex: 1; padding: 8px 10px;
+    border: 1.5px solid #ddd; border-radius: 10px;
+    font-size: 13px; font-family: inherit;
+    text-align: right; direction: rtl; outline: none; color: #555;
+  }
+  .date-input:focus { border-color: #4a90d9; }
+
+  /* Items list */
+  .items-list { flex: 1; overflow-y: auto; padding: 10px 12px; }
+
+  /* Shopping item */
+  .item-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 12px; background: #fff; border-radius: 12px;
+    margin-bottom: 7px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .item-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #4a90d9; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .item-check.checked { background: #4a90d9; border-color: #4a90d9; }
+  .item-check.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+  .item-text { flex: 1; font-size: 14px; color: #222; cursor: pointer; }
+  .item-text.done { text-decoration: line-through; color: #bbb; }
+  .item-del {
+    color: #ddd; font-size: 17px; cursor: pointer;
+    border: none; background: none; padding: 0 2px; flex-shrink: 0;
+  }
+  .item-del:hover { color: #e74c3c; }
+
+  /* Task item — two-line card */
+  .task-card {
+    background: #fff; border-radius: 12px;
+    margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    overflow: hidden;
+  }
+  .task-card-bar { width: 4px; border-radius: 0; flex-shrink: 0; align-self: stretch; }
+  .task-main { display: flex; align-items: center; gap: 9px; padding: 10px 12px 6px; }
+  .task-footer { display: flex; align-items: center; justify-content: space-between; padding: 0 12px 9px; }
+  .task-date { font-size: 11px; color: #999; }
+  .task-date.overdue { color: #e74c3c; font-weight: 600; }
+  .pri-tag {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    cursor: pointer;
+  }
+
+  /* Edit input inline */
+  .item-edit-input {
+    flex: 1; border: none; border-bottom: 2px solid #4a90d9;
+    font-size: 14px; font-family: inherit; background: transparent;
+    outline: none; text-align: right; direction: rtl; padding: 2px 0; color: #222;
+  }
+
+  .empty-msg {
+    text-align: center; color: #bbb; margin-top: 40px;
+    font-size: 13px; line-height: 1.8;
+  }
+  .empty-msg .big { font-size: 38px; display: block; margin-bottom: 8px; }
+
+  /* Template screen hint */
+  .template-hint {
+    background: #f9f0ff; padding: 9px 14px;
+    font-size: 12px; color: #8e44ad; text-align: right;
+    border-bottom: 1px solid #edd6f8;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    background: #fff; border-top: 1px solid #eee;
+    display: flex; padding: 8px 0 56px; flex-shrink: 0;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border: none; background: none; cursor: pointer;
+    color: #bbb; font-size: 10px; padding: 4px 0;
+  }
+  .nav-btn .nav-icon { font-size: 19px; }
+  .nav-btn.active { color: #4a90d9; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="phone-screen">
+
+    <div class="status-bar">
+      <span>9:41</span><span>📶 🔋</span>
+    </div>
+
+    <!-- ══ HOME ══ -->
+    <div class="screen active" id="screen-home">
+      <div class="home-header">
+        <h1>הרשימות שלי 📋</h1>
+        <p id="home-subtitle"></p>
+      </div>
+      <div class="lists-container" id="lists-container"></div>
+
+
+      <!-- New list modal -->
+      <div class="modal-overlay" id="new-list-modal">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+          <h2>רשימה חדשה</h2>
+
+          <div class="type-selector">
+            <div class="type-opt selected" id="type-shop" onclick="selectType('shop')">
+              <span class="type-icon">🛒</span>
+              <span class="type-label">קניות</span>
+            </div>
+            <div class="type-opt" id="type-tasks" onclick="selectType('tasks')">
+              <span class="type-icon">✅</span>
+              <span class="type-label">משימות</span>
+            </div>
+          </div>
+
+          <div class="emoji-row" id="emoji-row"></div>
+          <input class="modal-input" id="new-list-name" placeholder="שם הרשימה..." maxlength="30">
+          <button class="modal-btn" onclick="createList()">צור רשימה</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TEMPLATE ══ -->
+    <div class="screen" id="screen-template">
+      <div class="detail-header" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">
+        <button class="back-btn" onclick="goHome()">‹</button>
+        <span class="detail-icon-big">⭐</span>
+        <span class="detail-title">רשימת בסיס</span>
+      </div>
+      <div class="template-hint">פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה</div>
+      <div class="add-bar-simple">
+        <button class="add-btn" style="background:#8e44ad" onclick="addTemplateItem()">+</button>
+        <input class="add-input" id="new-template-input" placeholder="הוסף פריט קבוע..."
+               onkeydown="if(event.key==='Enter') addTemplateItem()">
+      </div>
+      <div class="items-list" id="template-items-list"></div>
+    </div>
+
+    <!-- ══ LIST DETAIL ══ -->
+    <div class="screen" id="screen-detail">
+      <div class="detail-header" id="detail-header">
+        <button class="back-btn" onclick="goHome()">‹</button>
+        <span class="detail-icon-big" id="detail-icon"></span>
+        <span class="detail-title" id="detail-title"></span>
+      </div>
+
+      <!-- add bar: shown/hidden by type -->
+      <div class="add-bar-simple" id="add-bar-shop">
+        <button class="add-btn" style="background:#4a90d9" onclick="addItem()">+</button>
+        <input class="add-input" id="new-item-input" placeholder="הוסף פריט..."
+               onkeydown="if(event.key==='Enter') addItem()">
+      </div>
+
+      <div class="add-bar-task" id="add-bar-task" style="display:none">
+        <div class="add-bar-row">
+          <input class="add-input" id="new-task-input" placeholder="שם המשימה..."
+                 onkeydown="if(event.key==='Enter') addTask()">
+        </div>
+        <div class="add-bar-row" style="align-items:center">
+          <div class="pri-sel" id="pri-sel">
+            <button class="pri-btn sel" data-p="none"  style="background:#eee;color:#888"     onclick="setPri('none')">ללא</button>
+            <button class="pri-btn"     data-p="low"   style="background:#d4edda;color:#276036" onclick="setPri('low')">נמוכה</button>
+            <button class="pri-btn"     data-p="medium" style="background:#fff3cd;color:#856404" onclick="setPri('medium')">בינונית</button>
+            <button class="pri-btn"     data-p="high"  style="background:#f8d7da;color:#721c24" onclick="setPri('high')">גבוהה</button>
+          </div>
+          <input class="date-input" id="new-task-date" type="date" style="max-width:130px">
+          <button class="add-btn" style="background:#27ae60;width:38px;flex-shrink:0" onclick="addTask()">+</button>
+        </div>
+      </div>
+
+      <div class="items-list" id="items-list"></div>
+    </div>
+
+    <!-- מודל שינוי שם רשימה -->
+    <div class="modal-overlay" id="rename-modal" onclick="closeRenameModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <h2>שינוי שם רשימה</h2>
+        <input class="modal-input" id="rename-input" placeholder="שם חדש...">
+        <button class="modal-btn" id="rename-confirm-btn">שמור</button>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-btn active" onclick="goHome()">
+        <span class="nav-icon">🏠</span>בית
+      </button>
+      <div class="fab-area">
+        <button class="fab-template" onclick="openTemplate()">⭐</button>
+        <button class="fab" style="position:static;transform:none;width:48px;height:48px" onclick="openNewListModal()">+</button>
+      </div>
+      <button class="nav-btn"><span class="nav-icon">⚙️</span>הגדרות</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB4g5PzhJfyMXfXlpDtbaMkheESumDOWqw",
+  authDomain: "mylist-96189.firebaseapp.com",
+  projectId: "mylist-96189",
+  storageBucket: "mylist-96189.firebasestorage.app",
+  messagingSenderId: "132272435621",
+  appId: "1:132272435621:web:47b082b3f2f44ca7b6384c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const DOC = doc(db, "users", "gurgurs");
+
+const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
+const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
+
+const PRI = {
+  none:   { label:'ללא',    bg:'#eeeeee', fg:'#888888' },
+  low:    { label:'נמוכה',  bg:'#d4edda', fg:'#276036' },
+  medium: { label:'בינונית',bg:'#fff3cd', fg:'#856404' },
+  high:   { label:'גבוהה',  bg:'#f8d7da', fg:'#721c24' },
+};
+const PRI_ORDER = ['high','medium','low','none'];
+
+let data = { lists: [], template: [] };
+let currentListIdx = null;
+let selectedEmoji  = EMOJIS_SHOP[0];
+let selectedType   = 'shop';
+let newTaskPri     = 'none';
+
+async function save() {
+  await setDoc(DOC, data);
+}
+
+// טעינה ראשונית מהענן
+async function loadFromCloud() {
+  try {
+    const snap = await getDoc(DOC);
+    if (snap.exists()) {
+      data = snap.data();
+      if (!data.template) data.template = [];
+    }
+  } catch(e) {
+    console.error("שגיאת טעינה:", e);
+  }
+  renderHome();
+}
+
+// ── Home ──────────────────────────────────────────────────────────────────
+function renderHome() {
+  const container = document.getElementById('lists-container');
+  const subtitle  = document.getElementById('home-subtitle');
+  const n = data.lists.length;
+  subtitle.textContent = n ? `${n} רשימות` : 'לחץ + ליצירת רשימה';
+
+  container.innerHTML = '';
+  data.lists.forEach((list, i) => {
+    const isTask = list.type === 'tasks';
+    const done   = list.items.filter(it => it.done).length;
+    const total  = list.items.length;
+    const p      = isTask ? PRI : null;
+
+    const typeColor = isTask ? '#27ae60' : '#4a90d9';
+    const typeLabel = isTask ? '✅ משימות' : '🛒 קניות';
+
+    const card = document.createElement('div');
+    card.className = 'list-card';
+    card.innerHTML = `
+      <div class="list-icon" style="background:${list.color}22">${list.emoji}</div>
+      <div class="list-info">
+        <div class="list-name">${list.name}</div>
+        <div class="list-meta">
+          <span class="type-badge" style="background:${typeColor}18;color:${typeColor}">${typeLabel}</span>
+          <span>${total ? `${done}/${total}` : 'ריקה'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="card-action-btn rename-btn" title="שנה שם">✎</button>
+        <button class="card-action-btn delete-btn" style="color:#e74c3c" title="מחק">🗑</button>
+      </div>`;
+
+    card.querySelector('.rename-btn').addEventListener('click', e => { e.stopPropagation(); renameList(i); });
+    card.querySelector('.delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteList(i); });
+    card.onclick = () => openList(i);
+    container.appendChild(card);
+  });
+}
+
+function renameList(idx) {
+  const input = document.getElementById('rename-input');
+  input.value = data.lists[idx].name;
+  document.getElementById('rename-modal').classList.add('open');
+  setTimeout(() => input.focus(), 100);
+  document.getElementById('rename-confirm-btn').onclick = () => {
+    const val = input.value.trim();
+    if (val) { data.lists[idx].name = val; save(); renderHome(); }
+    closeRenameModal();
+  };
+  input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('rename-confirm-btn').click(); };
+}
+
+function closeRenameModal() {
+  document.getElementById('rename-modal').classList.remove('open');
+}
+
+function deleteList(idx) {
+  if (confirm(`למחוק את הרשימה "${data.lists[idx].name}"?`)) {
+    data.lists.splice(idx, 1);
+    save(); renderHome();
+  }
+}
+
+function showListMenu(idx, pos) {
+  document.getElementById('list-menu-overlay').classList.add('open');
+  document.getElementById('list-menu-name').textContent = data.lists[idx].name;
+  document.getElementById('list-menu-rename').onclick = () => {
+    closeListMenu();
+    const newName = prompt('שם חדש לרשימה:', data.lists[idx].name);
+    if (newName && newName.trim()) {
+      data.lists[idx].name = newName.trim();
+      save(); renderHome();
+    }
+  };
+  document.getElementById('list-menu-delete').onclick = () => {
+    closeListMenu();
+    if (confirm(`למחוק את הרשימה "${data.lists[idx].name}"?`)) {
+      data.lists.splice(idx, 1);
+      save(); renderHome();
+    }
+  };
+}
+
+function closeListMenu() {
+  document.getElementById('list-menu-overlay').classList.remove('open');
+}
+
+// ── New list modal ────────────────────────────────────────────────────────
+function selectType(t) {
+  selectedType = t;
+  document.getElementById('type-shop').classList.toggle('selected',  t === 'shop');
+  document.getElementById('type-tasks').classList.toggle('selected', t === 'tasks');
+  buildEmojiRow();
+}
+
+function buildEmojiRow() {
+  const emojis = selectedType === 'shop' ? EMOJIS_SHOP : EMOJIS_TASKS;
+  selectedEmoji = emojis[0];
+  const row = document.getElementById('emoji-row');
+  row.innerHTML = '';
+  emojis.forEach((em, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (i === 0 ? ' selected' : '');
+    btn.textContent = em;
+    btn.onclick = () => {
+      row.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedEmoji = em;
+    };
+    row.appendChild(btn);
+  });
+}
+
+function openNewListModal() {
+  selectedType = 'shop';
+  document.getElementById('type-shop').classList.add('selected');
+  document.getElementById('type-tasks').classList.remove('selected');
+  buildEmojiRow();
+  document.getElementById('new-list-name').value = '';
+  document.getElementById('new-list-modal').classList.add('open');
+  setTimeout(() => document.getElementById('new-list-name').focus(), 100);
+}
+
+document.getElementById('new-list-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+function createList() {
+  const name = document.getElementById('new-list-name').value.trim();
+  if (!name) { document.getElementById('new-list-name').focus(); return; }
+  const color = COLORS[data.lists.length % COLORS.length];
+  const items = selectedType === 'shop'
+    ? data.template.map(t => ({ text: t, done: false }))
+    : [];
+  data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, items });
+  save();
+  document.getElementById('new-list-modal').classList.remove('open');
+  renderHome();
+  openList(data.lists.length - 1);
+}
+
+// ── List detail ───────────────────────────────────────────────────────────
+function openList(idx) {
+  currentListIdx = idx;
+  const list = data.lists[idx];
+  const isTask = list.type === 'tasks';
+  const hdrColor = isTask ? '#27ae60' : list.color;
+
+  document.getElementById('detail-icon').textContent  = list.emoji;
+  document.getElementById('detail-title').textContent = list.name;
+  document.getElementById('detail-header').style.background =
+    isTask ? 'linear-gradient(135deg,#27ae60,#1e8449)'
+           : `linear-gradient(135deg,${list.color},${list.color}bb)`;
+
+  document.getElementById('add-bar-shop').style.display = isTask ? 'none' : 'flex';
+  document.getElementById('add-bar-task').style.display = isTask ? 'flex' : 'none';
+
+  if (!isTask) document.getElementById('new-item-input').value = '';
+  else { document.getElementById('new-task-input').value = ''; document.getElementById('new-task-date').value = ''; }
+
+  showScreen('screen-detail');
+  setTimeout(() => {
+    const inp = isTask ? 'new-task-input' : 'new-item-input';
+    document.getElementById(inp).focus();
+  }, 150);
+
+  renderItems();
+}
+
+function goHome() {
+  showScreen('screen-home');
+  renderHome();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Render items ──────────────────────────────────────────────────────────
+function renderItems() {
+  const list = data.lists[currentListIdx];
+  const container = document.getElementById('items-list');
+  container.innerHTML = '';
+
+  if (!list.items.length) {
+    container.innerHTML = `<div class="empty-msg">
+      <span class="big">${list.emoji}</span>
+      הרשימה ריקה — הוסף פריט ראשון
+    </div>`;
+    return;
+  }
+
+  if (list.type === 'tasks') {
+    // sort: high → medium → low → none, done last
+    const sorted = [...list.items.entries()].sort(([,a],[,b]) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return PRI_ORDER.indexOf(a.priority||'none') - PRI_ORDER.indexOf(b.priority||'none');
+    });
+    sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
+  } else {
+    list.items.forEach((item, i) => renderShopRow(container, i, item));
+  }
+}
+
+function renderShopRow(container, i, item) {
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
+    <span class="item-text ${item.done?'done':''}"
+          ondblclick="startEditText(${i}, this)">${item.text}</span>
+    <button class="item-del" onclick="deleteItem(${i})">✕</button>`;
+  container.appendChild(row);
+}
+
+function renderTaskCard(container, i, item) {
+  const pri = PRI[item.priority||'none'];
+  const card = document.createElement('div');
+  card.className = 'task-card';
+
+  let dateHtml = '';
+  if (item.date) {
+    const d = new Date(item.date + 'T00:00:00');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const overdue = !item.done && d < today;
+    const label = d.toLocaleDateString('he-IL', {day:'numeric',month:'short',year:'numeric'});
+    dateHtml = `<span class="task-date ${overdue?'overdue':''}" title="לחץ לעריכת תאריך"
+      onclick="editDate(${i}, this)">${overdue?'⚠️ ':' 📅 '}${label}</span>`;
+  } else {
+    dateHtml = `<span class="task-date" style="color:#ccc;cursor:pointer" title="הוסף תאריך"
+      onclick="editDate(${i}, this)">+ תאריך</span>`;
+  }
+
+  card.innerHTML = `
+    <div style="display:flex">
+      <div style="width:5px;background:${item.done?'#ddd':pri.bg};border-radius:12px 0 0 12px;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div class="task-main">
+          <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
+          <span class="item-text ${item.done?'done':''}" style="font-size:14px"
+                ondblclick="startEditText(${i}, this)">${item.text}</span>
+          <button class="item-del" onclick="deleteItem(${i})">✕</button>
+        </div>
+        <div class="task-footer">
+          ${dateHtml}
+          <span class="pri-tag" style="background:${pri.bg};color:${pri.fg}"
+                onclick="cyclePriority(${i})">${pri.label||'ללא עדיפות'}</span>
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(card);
+}
+
+// ── Shopping CRUD ─────────────────────────────────────────────────────────
+function addItem() {
+  const input = document.getElementById('new-item-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  data.lists[currentListIdx].items.push({ text, done: false });
+  save(); input.value = ''; renderItems(); input.focus();
+}
+
+// ── Task CRUD ─────────────────────────────────────────────────────────────
+function setPri(p) {
+  newTaskPri = p;
+  document.querySelectorAll('#pri-sel .pri-btn').forEach(b => {
+    b.classList.toggle('sel', b.dataset.p === p);
+  });
+}
+
+function addTask() {
+  const input = document.getElementById('new-task-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  const date = document.getElementById('new-task-date').value;
+  data.lists[currentListIdx].items.push({ text, done: false, priority: newTaskPri, date: date||'' });
+  save();
+  input.value = '';
+  document.getElementById('new-task-date').value = '';
+  setPri('none');
+  renderItems();
+  input.focus();
+}
+
+function editDate(i, span) {
+  const item = data.lists[currentListIdx].items[i];
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'date-input';
+  input.style.cssText = 'width:130px;font-size:12px;padding:3px 6px';
+  input.value = item.date || '';
+  span.replaceWith(input);
+  input.focus();
+  function commit() {
+    item.date = input.value || '';
+    save(); renderItems();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('change', () => { input.blur(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { save(); renderItems(); }
+  });
+}
+
+function cyclePriority(i) {
+  const item = data.lists[currentListIdx].items[i];
+  const cur  = item.priority || 'none';
+  const next = PRI_ORDER[(PRI_ORDER.indexOf(cur) + 1) % PRI_ORDER.length];
+  item.priority = next;
+  save(); renderItems();
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────
+function toggleItem(i) {
+  data.lists[currentListIdx].items[i].done ^= true;
+  save(); renderItems();
+}
+
+function deleteItem(i) {
+  data.lists[currentListIdx].items.splice(i, 1);
+  save(); renderItems();
+}
+
+function startEditText(i, span) {
+  const input = document.createElement('input');
+  input.className = 'item-edit-input';
+  input.value = data.lists[currentListIdx].items[i].text;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  function commit() {
+    const val = input.value.trim();
+    if (val) data.lists[currentListIdx].items[i].text = val;
+    save(); renderItems();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { save(); renderItems(); }
+  });
+}
+
+// ── Template ──────────────────────────────────────────────────────────────
+function openTemplate() {
+  document.getElementById('new-template-input').value = '';
+  renderTemplateItems();
+  showScreen('screen-template');
+}
+
+function renderTemplateItems() {
+  const container = document.getElementById('template-items-list');
+  container.innerHTML = '';
+  if (!data.template.length) {
+    container.innerHTML = `<div class="empty-msg">
+      <span class="big">⭐</span>הוסף פריטים קבועים<br>שיופיעו בכל רשימת קניות חדשה
+    </div>`;
+    return;
+  }
+  data.template.forEach((text, i) => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <span style="font-size:16px">⭐</span>
+      <span class="item-text" ondblclick="startEditTemplate(${i}, this)">${text}</span>
+      <button class="item-del" onclick="deleteTemplateItem(${i})">✕</button>`;
+    container.appendChild(row);
+  });
+}
+
+function addTemplateItem() {
+  const input = document.getElementById('new-template-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  data.template.push(text);
+  save(); input.value = ''; renderTemplateItems(); input.focus();
+}
+
+function deleteTemplateItem(i) {
+  data.template.splice(i, 1);
+  save(); renderTemplateItems();
+}
+
+function startEditTemplate(i, span) {
+  const input = document.createElement('input');
+  input.className = 'item-edit-input';
+  input.value = data.template[i];
+  span.replaceWith(input);
+  input.focus(); input.select();
+  function commit() {
+    const val = input.value.trim();
+    if (val) data.template[i] = val;
+    save(); renderTemplateItems();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { save(); renderTemplateItems(); }
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadFromCloud();
+
+// חשיפת פונקציות ל-HTML
+Object.assign(window, {
+  openNewListModal, createList, selectType,
+  openList, goHome, openTemplate,
+  addItem, addTask, setPri,
+  toggleItem, deleteItem, startEditText, editDate, cyclePriority,
+  addTemplateItem, deleteTemplateItem, startEditTemplate,
+  closeListMenu, renameList, deleteList, closeRenameModal
+});
+</script>
+</body>
+</html>
