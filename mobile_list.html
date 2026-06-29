@@ -653,7 +653,7 @@ function renderShopRow(container, i, item) {
   row.innerHTML = `
     <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
     <span class="item-text ${item.done?'done':''}"
-          ondblclick="startEditText(${i}, this)">${item.text}</span>
+          ondblclick="startEditText(${i}, this)" ontouchstart="handleTouchStart(event, ${i}, this)" ontouchend="handleTouchEnd(event)">${item.text}</span>
     <button class="item-del" onclick="deleteItem(${i})">✕</button>`;
   container.appendChild(row);
 }
@@ -683,7 +683,7 @@ function renderTaskCard(container, i, item) {
         <div class="task-main">
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
           <span class="item-text ${item.done?'done':''}" style="font-size:14px"
-                ondblclick="startEditText(${i}, this)">${item.text}</span>
+                ondblclick="startEditText(${i}, this)" ontouchstart="handleTouchStart(event, ${i}, this)" ontouchend="handleTouchEnd(event)">${item.text}</span>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
         </div>
         <div class="task-footer">
@@ -764,6 +764,16 @@ function toggleItem(i) {
 function deleteItem(i) {
   data.lists[currentListIdx].items.splice(i, 1);
   save(); renderItems();
+}
+
+let _touchTimer = null;
+
+function handleTouchStart(e, i, span) {
+  _touchTimer = setTimeout(() => { startEditText(i, span); }, 600);
+}
+
+function handleTouchEnd(e) {
+  clearTimeout(_touchTimer);
 }
 
 function startEditText(i, span) {
@@ -851,6 +861,7 @@ Object.assign(window, {
   openList, goHome, openTemplate,
   addItem, addTask, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
+  handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, deleteList, closeRenameModal
 });
