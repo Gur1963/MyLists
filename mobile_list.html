@@ -273,6 +273,18 @@
 </head>
 <body>
 
+<!-- מסך כניסה -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:#f5f5f5;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:999">
+  <div style="font-size:64px">📋</div>
+  <h1 style="font-size:24px;color:#333">הרשימות שלי</h1>
+  <p style="color:#888;font-size:14px">כנס כדי לראות את הרשימות שלך</p>
+  <button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:16px;cursor:pointer;box-shadow:0 2px 8px #0001">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22">
+    כניסה עם Google
+  </button>
+</div>
+
+<div id="app-screen" style="display:none;width:100%;height:100vh;flex-direction:column">
 <div class="phone">
   <div class="notch"></div>
   <div class="phone-screen">
@@ -284,8 +296,12 @@
     <!-- ══ HOME ══ -->
     <div class="screen active" id="screen-home">
       <div class="home-header">
-        <h1>הרשימות שלי 📋</h1>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h1>הרשימות שלי 📋</h1>
+          <button onclick="logout()" style="border:none;background:none;color:#aaa;font-size:13px;cursor:pointer">יציאה</button>
+        </div>
         <p id="home-subtitle"></p>
+        <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
       </div>
       <div class="lists-container" id="lists-container"></div>
 
@@ -394,6 +410,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4g5PzhJfyMXfXlpDtbaMkheESumDOWqw",
@@ -404,9 +421,13 @@ const firebaseConfig = {
   appId: "1:132272435621:web:47b082b3f2f44ca7b6384c"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const DOC = doc(db, "users", "gurgurs");
+const app      = initializeApp(firebaseConfig);
+const db       = getFirestore(app);
+const auth     = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+let DOC = null;
 
 const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
 const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
@@ -427,10 +448,9 @@ let selectedType   = 'shop';
 let newTaskPri     = 'none';
 
 async function save() {
-  await setDoc(DOC, data);
+  if (DOC) await setDoc(DOC, data);
 }
 
-// טעינה ראשונית מהענן
 async function loadFromCloud() {
   try {
     const snap = await getDoc(DOC);
@@ -443,6 +463,43 @@ async function loadFromCloud() {
   }
   renderHome();
 }
+
+function showLoginScreen() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display  = 'none';
+}
+
+function showAppScreen() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'flex';
+}
+
+async function loginWithGoogle() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    alert('שגיאת כניסה: ' + e.message);
+  }
+}
+
+async function logout() {
+  await signOut(auth);
+}
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    currentUser = user;
+    DOC = doc(db, "users", user.uid);
+    data = { lists: [], template: [] };
+    await loadFromCloud();
+    document.getElementById('user-name').textContent = user.displayName || user.email;
+    showAppScreen();
+  } else {
+    currentUser = null;
+    DOC = null;
+    showLoginScreen();
+  }
+});
 
 // ── Home ──────────────────────────────────────────────────────────────────
 function renderHome() {
@@ -876,9 +933,6 @@ function startEditTemplate(i, span) {
   });
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
-loadFromCloud();
-
 // חשיפת פונקציות ל-HTML
 Object.assign(window, {
   openNewListModal, createList, selectType,
@@ -887,8 +941,10 @@ Object.assign(window, {
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
-  closeListMenu, renameList, duplicateList, deleteList, closeRenameModal
+  closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
+  loginWithGoogle, logout
 });
 </script>
+</div><!-- /app-screen -->
 </body>
 </html>
