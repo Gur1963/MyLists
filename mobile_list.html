@@ -470,10 +470,12 @@ function renderHome() {
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="card-action-btn rename-btn" title="שנה שם">✎</button>
+        <button class="card-action-btn duplicate-btn" title="שכפל">📋</button>
         <button class="card-action-btn delete-btn" style="color:#e74c3c" title="מחק">🗑</button>
       </div>`;
 
     card.querySelector('.rename-btn').addEventListener('click', e => { e.stopPropagation(); renameList(i); });
+    card.querySelector('.duplicate-btn').addEventListener('click', e => { e.stopPropagation(); duplicateList(i); });
     card.querySelector('.delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteList(i); });
     card.onclick = () => openList(i);
     container.appendChild(card);
@@ -495,6 +497,25 @@ function renameList(idx) {
 
 function closeRenameModal() {
   document.getElementById('rename-modal').classList.remove('open');
+}
+
+function duplicateList(idx) {
+  const input = document.getElementById('rename-input');
+  input.value = data.lists[idx].name + ' (עותק)';
+  document.getElementById('rename-modal').classList.add('open');
+  setTimeout(() => { input.focus(); input.select(); }, 100);
+  document.getElementById('rename-confirm-btn').onclick = () => {
+    const val = input.value.trim();
+    if (val) {
+      const copy = JSON.parse(JSON.stringify(data.lists[idx]));
+      copy.name = val;
+      copy.items = copy.items.map(it => ({...it, done: false}));
+      data.lists.push(copy);
+      save(); renderHome();
+    }
+    closeRenameModal();
+  };
+  input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('rename-confirm-btn').click(); };
 }
 
 function deleteList(idx) {
@@ -862,7 +883,7 @@ Object.assign(window, {
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
-  closeListMenu, renameList, deleteList, closeRenameModal
+  closeListMenu, renameList, duplicateList, deleteList, closeRenameModal
 });
 </script>
 </body>
