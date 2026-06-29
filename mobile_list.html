@@ -652,8 +652,8 @@ function renderShopRow(container, i, item) {
   row.className = 'item-row';
   row.innerHTML = `
     <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
-    <span class="item-text ${item.done?'done':''}"
-          ondblclick="startEditText(${i}, this)" ontouchstart="handleTouchStart(event, ${i}, this)" ontouchend="handleTouchEnd(event)">${item.text}</span>
+    <span class="item-text ${item.done?'done':''}">${item.text}</span>
+    <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
     <button class="item-del" onclick="deleteItem(${i})">✕</button>`;
   container.appendChild(row);
 }
@@ -682,8 +682,8 @@ function renderTaskCard(container, i, item) {
       <div style="flex:1">
         <div class="task-main">
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
-          <span class="item-text ${item.done?'done':''}" style="font-size:14px"
-                ondblclick="startEditText(${i}, this)" ontouchstart="handleTouchStart(event, ${i}, this)" ontouchend="handleTouchEnd(event)">${item.text}</span>
+          <span class="item-text ${item.done?'done':''}" style="font-size:14px">${item.text}</span>
+          <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
         </div>
         <div class="task-footer">
