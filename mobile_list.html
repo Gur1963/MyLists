@@ -376,13 +376,16 @@
     </div>
 
     <div class="bottom-nav">
-      <button class="nav-btn active" onclick="goHome()">
-        <span class="nav-icon">🏠</span>בית
-      </button>
-      <div class="fab-area">
+      <div style="flex:1;display:flex;justify-content:center">
+        <button class="nav-btn active" onclick="goHome()">
+          <span class="nav-icon">🏠</span>בית
+        </button>
+      </div>
+      <div style="flex:1;display:flex;justify-content:center;gap:12px;align-items:center">
         <button class="fab-template" onclick="openTemplate()">⭐</button>
         <button class="fab" style="position:static;transform:none;width:48px;height:48px" onclick="openNewListModal()">+</button>
       </div>
+      <div style="flex:1"></div>
     </div>
 
   </div>
