@@ -260,7 +260,7 @@
   .bottom-nav {
     background: #fff; border-top: 1px solid #eee;
     display: flex; justify-content: space-around; align-items: center;
-    padding: 8px 0 56px; flex-shrink: 0;
+    padding: 8px 0 calc(96px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0;
   }
   .nav-btn {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -905,7 +905,8 @@ function renderTemplateItems() {
     row.className = 'item-row';
     row.innerHTML = `
       <span style="font-size:16px">⭐</span>
-      <span class="item-text" ondblclick="startEditTemplate(${i}, this)">${text}</span>
+      <span class="item-text">${text}</span>
+      <button class="card-action-btn" onclick="startEditTemplate(${i}, this.previousElementSibling)">✎</button>
       <button class="item-del" onclick="deleteTemplateItem(${i})">✕</button>`;
     container.appendChild(row);
   });
