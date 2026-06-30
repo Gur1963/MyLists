@@ -330,6 +330,22 @@
       </div>
     </div>
 
+    <!-- ══ ADMIN ══ -->
+    <div class="screen" id="screen-admin">
+      <div class="detail-header" style="background:linear-gradient(135deg,#2c3e50,#4a5568)">
+        <button class="back-btn" onclick="goHome()">‹</button>
+        <div class="detail-title">⚙️ הגדרות</div>
+      </div>
+      <div style="padding:16px">
+        <h3 style="margin-bottom:12px;color:#333">משתמשים מורשים</h3>
+        <div id="admin-users-list"></div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <input id="new-user-input" type="email" placeholder="הוסף מייל..." style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px">
+          <button onclick="addAllowedUser()" style="padding:10px 16px;background:#4a90d9;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer">הוסף</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ TEMPLATE ══ -->
     <div class="screen" id="screen-template">
       <div class="detail-header" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">
@@ -401,7 +417,11 @@
         <button class="fab-template" onclick="openTemplate()">⭐</button>
         <button class="fab" style="position:static;transform:none;width:48px;height:48px" onclick="openNewListModal()">+</button>
       </div>
-      <div style="flex:1"></div>
+      <div style="flex:1;display:flex;justify-content:center" id="admin-btn-wrap" style="display:none">
+        <button class="nav-btn" onclick="openAdmin()" id="admin-nav-btn" style="display:none">
+          <span class="nav-icon">⚙️</span>הגדרות
+        </button>
+      </div>
     </div>
 
   </div>
@@ -495,13 +515,42 @@ async function logout() {
   await signOut(auth);
 }
 
+const ADMIN_EMAIL = 'gurgurs@gmail.com';
+const CONFIG_DOC  = doc(db, "config", "allowed_users");
+
+async function isAllowed(email) {
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    if (!snap.exists()) {
+      // פעם ראשונה — יוצר את הרשימה עם האדמין
+      await setDoc(CONFIG_DOC, { allowed: [ADMIN_EMAIL] });
+      return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    }
+    return snap.data().allowed.map(e => e.toLowerCase()).includes(email.toLowerCase());
+  } catch(e) {
+    return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  }
+}
+
 onAuthStateChanged(auth, async user => {
   if (user) {
+    if (!await isAllowed(user.email)) {
+      await signOut(auth);
+      document.getElementById('login-screen').innerHTML = `
+        <div style="font-size:64px">🚫</div>
+        <h2 style="color:#333">אין גישה</h2>
+        <p style="color:#888;font-size:14px">${user.email} אינו מורשה</p>
+        <button onclick="loginWithGoogle()" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer">נסה חשבון אחר</button>`;
+      document.getElementById('login-screen').style.display = 'flex';
+      return;
+    }
     currentUser = user;
     DOC = doc(db, "users", user.uid);
     data = { lists: [], template: [] };
     await loadFromCloud();
     document.getElementById('user-name').textContent = user.displayName || user.email;
+    const isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    document.getElementById('admin-nav-btn').style.display = isAdmin ? '' : 'none';
     showAppScreen();
   } else {
     currentUser = null;
@@ -945,6 +994,51 @@ function startEditTemplate(i, span) {
   });
 }
 
+// ── Admin ─────────────────────────────────────────────────────────────────
+function openAdmin() {
+  renderAdminUsers();
+  showScreen('screen-admin');
+}
+
+async function renderAdminUsers() {
+  const container = document.getElementById('admin-users-list');
+  container.innerHTML = '<div style="color:#aaa;font-size:13px">טוען...</div>';
+  const snap = await getDoc(CONFIG_DOC);
+  const list = snap.exists() ? snap.data().allowed : [];
+  container.innerHTML = '';
+  list.forEach((email, i) => {
+    const row = document.createElement('div');
+    row.style = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee';
+    row.innerHTML = `
+      <span style="font-size:14px;color:#333">${email}</span>
+      ${email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? '' :
+        `<button onclick="removeAllowedUser('${email}')" style="border:none;background:none;color:#e74c3c;font-size:18px;cursor:pointer">✕</button>`}`;
+    container.appendChild(row);
+  });
+  if (!list.length) container.innerHTML = '<div style="color:#aaa;font-size:13px">אין משתמשים</div>';
+}
+
+async function addAllowedUser() {
+  const input = document.getElementById('new-user-input');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !email.includes('@')) return;
+  const snap = await getDoc(CONFIG_DOC);
+  const list = snap.exists() ? snap.data().allowed : [];
+  if (list.map(e => e.toLowerCase()).includes(email)) { alert('מייל כבר קיים'); return; }
+  list.push(email);
+  await setDoc(CONFIG_DOC, { allowed: list });
+  input.value = '';
+  renderAdminUsers();
+}
+
+async function removeAllowedUser(email) {
+  if (!confirm(`למחוק ${email}?`)) return;
+  const snap = await getDoc(CONFIG_DOC);
+  const list = snap.exists() ? snap.data().allowed.filter(e => e.toLowerCase() !== email.toLowerCase()) : [];
+  await setDoc(CONFIG_DOC, { allowed: list });
+  renderAdminUsers();
+}
+
 // חשיפת פונקציות ל-HTML
 Object.assign(window, {
   openNewListModal, createList, selectType,
@@ -954,7 +1048,8 @@ Object.assign(window, {
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
-  loginWithGoogle, logout
+  loginWithGoogle, logout,
+  openAdmin, addAllowedUser, removeAllowedUser
 });
 </script>
 </div><!-- /app-screen -->
