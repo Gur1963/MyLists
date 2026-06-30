@@ -906,8 +906,10 @@ function renderTemplateItems() {
     row.innerHTML = `
       <span style="font-size:16px">⭐</span>
       <span class="item-text">${text}</span>
-      <button class="card-action-btn" onclick="startEditTemplate(${i}, this.previousElementSibling)">✎</button>
+      <button class="card-action-btn edit-tpl-btn">✎</button>
       <button class="item-del" onclick="deleteTemplateItem(${i})">✕</button>`;
+    const span = row.querySelector('.item-text');
+    row.querySelector('.edit-tpl-btn').addEventListener('click', () => startEditTemplate(i, span));
     container.appendChild(row);
   });
 }
