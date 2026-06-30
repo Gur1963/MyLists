@@ -1000,11 +1000,15 @@ function openAdmin() {
   showScreen('screen-admin');
 }
 
+function normalizeList(raw) {
+  return (raw || []).map(u => typeof u === 'string' ? { email: u, active: true } : u);
+}
+
 async function renderAdminUsers() {
   const container = document.getElementById('admin-users-list');
   container.innerHTML = '<div style="color:#aaa;font-size:13px">טוען...</div>';
   const snap = await getDoc(CONFIG_DOC);
-  const list = snap.exists() ? snap.data().allowed : [];
+  const list = normalizeList(snap.exists() ? snap.data().allowed : []);
   container.innerHTML = '';
   list.forEach(u => {
     const isAdmin = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -1031,7 +1035,7 @@ async function addAllowedUser() {
   const email = input.value.trim().toLowerCase();
   if (!email || !email.includes('@')) return;
   const snap = await getDoc(CONFIG_DOC);
-  const list = snap.exists() ? snap.data().allowed : [];
+  const list = normalizeList(snap.exists() ? snap.data().allowed : []);
   if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
   list.push({ email, active: true });
   await setDoc(CONFIG_DOC, { allowed: list });
@@ -1041,7 +1045,7 @@ async function addAllowedUser() {
 
 async function toggleUserActive(email, newState) {
   const snap = await getDoc(CONFIG_DOC);
-  const list = snap.exists() ? snap.data().allowed : [];
+  const list = normalizeList(snap.exists() ? snap.data().allowed : []);
   const user = list.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (user) user.active = newState;
   await setDoc(CONFIG_DOC, { allowed: list });
@@ -1051,7 +1055,7 @@ async function toggleUserActive(email, newState) {
 async function removeAllowedUser(email) {
   if (!confirm(`למחוק את ${email}?`)) return;
   const snap = await getDoc(CONFIG_DOC);
-  const list = snap.exists() ? snap.data().allowed.filter(u => u.email.toLowerCase() !== email.toLowerCase()) : [];
+  const list = normalizeList(snap.exists() ? snap.data().allowed : []).filter(u => u.email.toLowerCase() !== email.toLowerCase());
   await setDoc(CONFIG_DOC, { allowed: list });
   renderAdminUsers();
 }
