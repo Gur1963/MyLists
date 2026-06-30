@@ -525,7 +525,12 @@ async function isAllowed(email) {
       await setDoc(CONFIG_DOC, { allowed: [{ email: ADMIN_EMAIL, active: true }] });
       return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     }
-    const user = snap.data().allowed.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const list = normalizeList(snap.data().allowed);
+    // אם הרשימה עדיין בפורמט ישן — שמור מחדש בפורמט חדש
+    if (snap.data().allowed.some(u => typeof u === 'string')) {
+      await setDoc(CONFIG_DOC, { allowed: list });
+    }
+    const user = list.find(u => u.email.toLowerCase() === email.toLowerCase());
     return user ? user.active === true : false;
   } catch(e) {
     return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -1033,14 +1038,18 @@ async function renderAdminUsers() {
 async function addAllowedUser() {
   const input = document.getElementById('new-user-input');
   const email = input.value.trim().toLowerCase();
-  if (!email || !email.includes('@')) return;
-  const snap = await getDoc(CONFIG_DOC);
-  const list = normalizeList(snap.exists() ? snap.data().allowed : []);
-  if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
-  list.push({ email, active: true });
-  await setDoc(CONFIG_DOC, { allowed: list });
-  input.value = '';
-  renderAdminUsers();
+  if (!email || !email.includes('@')) { alert('מייל לא תקין'); return; }
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    const list = normalizeList(snap.exists() ? snap.data().allowed : []);
+    if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
+    list.push({ email, active: true });
+    await setDoc(CONFIG_DOC, { allowed: list });
+    input.value = '';
+    renderAdminUsers();
+  } catch(e) {
+    alert('שגיאה: ' + e.message);
+  }
 }
 
 async function toggleUserActive(email, newState) {
