@@ -522,11 +522,11 @@ async function isAllowed(email) {
   try {
     const snap = await getDoc(CONFIG_DOC);
     if (!snap.exists()) {
-      // פעם ראשונה — יוצר את הרשימה עם האדמין
-      await setDoc(CONFIG_DOC, { allowed: [ADMIN_EMAIL] });
+      await setDoc(CONFIG_DOC, { allowed: [{ email: ADMIN_EMAIL, active: true }] });
       return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     }
-    return snap.data().allowed.map(e => e.toLowerCase()).includes(email.toLowerCase());
+    const user = snap.data().allowed.find(u => u.email.toLowerCase() === email.toLowerCase());
+    return user ? user.active === true : false;
   } catch(e) {
     return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   }
@@ -1006,13 +1006,21 @@ async function renderAdminUsers() {
   const snap = await getDoc(CONFIG_DOC);
   const list = snap.exists() ? snap.data().allowed : [];
   container.innerHTML = '';
-  list.forEach((email, i) => {
+  list.forEach(u => {
+    const isAdmin = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     const row = document.createElement('div');
-    row.style = 'display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee';
+    row.style = 'display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eee';
     row.innerHTML = `
-      <span style="font-size:14px;color:#333">${email}</span>
-      ${email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? '' :
-        `<button onclick="removeAllowedUser('${email}')" style="border:none;background:none;color:#e74c3c;font-size:18px;cursor:pointer">✕</button>`}`;
+      <div style="flex:1">
+        <div style="font-size:14px;color:${u.active ? '#333' : '#aaa'}">${u.email}</div>
+        <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
+      </div>
+      ${isAdmin ? '' : `
+        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer">
+          ${u.active ? 'השהה' : 'הפעל'}
+        </button>
+        <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:none;color:#e74c3c;font-size:18px;cursor:pointer">✕</button>
+      `}`;
     container.appendChild(row);
   });
   if (!list.length) container.innerHTML = '<div style="color:#aaa;font-size:13px">אין משתמשים</div>';
@@ -1024,17 +1032,26 @@ async function addAllowedUser() {
   if (!email || !email.includes('@')) return;
   const snap = await getDoc(CONFIG_DOC);
   const list = snap.exists() ? snap.data().allowed : [];
-  if (list.map(e => e.toLowerCase()).includes(email)) { alert('מייל כבר קיים'); return; }
-  list.push(email);
+  if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
+  list.push({ email, active: true });
   await setDoc(CONFIG_DOC, { allowed: list });
   input.value = '';
   renderAdminUsers();
 }
 
-async function removeAllowedUser(email) {
-  if (!confirm(`למחוק ${email}?`)) return;
+async function toggleUserActive(email, newState) {
   const snap = await getDoc(CONFIG_DOC);
-  const list = snap.exists() ? snap.data().allowed.filter(e => e.toLowerCase() !== email.toLowerCase()) : [];
+  const list = snap.exists() ? snap.data().allowed : [];
+  const user = list.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (user) user.active = newState;
+  await setDoc(CONFIG_DOC, { allowed: list });
+  renderAdminUsers();
+}
+
+async function removeAllowedUser(email) {
+  if (!confirm(`למחוק את ${email}?`)) return;
+  const snap = await getDoc(CONFIG_DOC);
+  const list = snap.exists() ? snap.data().allowed.filter(u => u.email.toLowerCase() !== email.toLowerCase()) : [];
   await setDoc(CONFIG_DOC, { allowed: list });
   renderAdminUsers();
 }
@@ -1049,7 +1066,7 @@ Object.assign(window, {
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout,
-  openAdmin, addAllowedUser, removeAllowedUser
+  openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser
 });
 </script>
 </div><!-- /app-screen -->
