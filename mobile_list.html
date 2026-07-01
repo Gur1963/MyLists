@@ -872,9 +872,34 @@ function renderLinkRow(container, i, item) {
       <div class="item-text" style="font-weight:600">${item.text}</div>
       <div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.url||''}</div>
     </div>
+    <button class="card-action-btn edit-link-btn">✎</button>
     <button class="item-del" onclick="event.stopPropagation();deleteItem(${i})">✕</button>`;
+  row.querySelector('.edit-link-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    startEditLink(i, row);
+  });
   row.addEventListener('click', () => { if (item.url) window.open(item.url, '_blank'); });
   container.appendChild(row);
+}
+
+function startEditLink(i, row) {
+  const item = data.lists[currentListIdx].items[i];
+  row.innerHTML = `
+    <span style="font-size:20px">🔗</span>
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+      <input class="item-edit-input" id="edit-link-name-${i}" value="${item.text}" placeholder="שם">
+      <input class="item-edit-input" id="edit-link-url-${i}"  value="${item.url||''}" placeholder="קישור" type="url">
+    </div>
+    <button class="add-btn" style="background:#27ae60;width:36px;height:36px" id="edit-link-save-${i}">✓</button>`;
+  function commit() {
+    const name = document.getElementById(`edit-link-name-${i}`).value.trim();
+    const url  = document.getElementById(`edit-link-url-${i}`).value.trim();
+    if (name) { item.text = name; item.url = url; }
+    data.lists[currentListIdx].items[i] = item;
+    save(); renderItems();
+  }
+  document.getElementById(`edit-link-save-${i}`).addEventListener('click', commit);
+  document.getElementById(`edit-link-name-${i}`).focus();
 }
 
 function addLink() {
