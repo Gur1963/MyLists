@@ -1073,10 +1073,9 @@ async function removeAllowedUser(email) {
 function shareListWhatsapp() {
   const list = data.lists[currentListIdx];
   if (!list) return;
-  const lines = [`📋 *${list.name}*`, ''];
+  const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
   list.items.forEach(item => {
-    const check = item.done ? '✅' : '⬜';
-    lines.push(`${check} ${item.text}`);
+    lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
   });
   const text = encodeURIComponent(lines.join('\n'));
   window.open(`https://wa.me/?text=${text}`, '_blank');
