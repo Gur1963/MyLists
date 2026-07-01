@@ -368,6 +368,7 @@
         <button class="back-btn" onclick="goHome()">‹</button>
         <span class="detail-icon-big" id="detail-icon"></span>
         <span class="detail-title" id="detail-title"></span>
+        <button class="back-btn" onclick="shareListWhatsapp()" title="שלח ב-WhatsApp" style="margin-right:auto;font-size:20px">📤</button>
       </div>
 
       <!-- add bar: shown/hidden by type -->
@@ -1069,6 +1070,18 @@ async function removeAllowedUser(email) {
   renderAdminUsers();
 }
 
+function shareListWhatsapp() {
+  const list = data.lists[currentListIdx];
+  if (!list) return;
+  const lines = [`📋 *${list.name}*`, ''];
+  list.items.forEach(item => {
+    const check = item.done ? '✅' : '⬜';
+    lines.push(`${check} ${item.text}`);
+  });
+  const text = encodeURIComponent(lines.join('\n'));
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
 // חשיפת פונקציות ל-HTML
 Object.assign(window, {
   openNewListModal, createList, selectType,
@@ -1078,7 +1091,7 @@ Object.assign(window, {
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
-  loginWithGoogle, logout,
+  loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser
 });
 </script>
