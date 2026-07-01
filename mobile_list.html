@@ -321,6 +321,10 @@
               <span class="type-icon">✅</span>
               <span class="type-label">משימות</span>
             </div>
+            <div class="type-opt" id="type-links" onclick="selectType('links')">
+              <span class="type-icon">🔗</span>
+              <span class="type-label">הפניות</span>
+            </div>
           </div>
 
           <div class="emoji-row" id="emoji-row"></div>
@@ -376,6 +380,16 @@
         <button class="add-btn" style="background:#4a90d9" onclick="addItem()">+</button>
         <input class="add-input" id="new-item-input" placeholder="הוסף פריט..."
                onkeydown="if(event.key==='Enter') addItem()">
+      </div>
+
+      <div class="add-bar-task" id="add-bar-links" style="display:none">
+        <div class="add-bar-row">
+          <input class="add-input" id="new-link-name" placeholder="שם ההפניה..." onkeydown="if(event.key==='Enter') document.getElementById('new-link-url').focus()">
+        </div>
+        <div class="add-bar-row">
+          <input class="add-input" id="new-link-url" placeholder="קישור (https://...)" type="url" onkeydown="if(event.key==='Enter') addLink()">
+          <button class="add-btn" style="background:#e67e22" onclick="addLink()">+</button>
+        </div>
       </div>
 
       <div class="add-bar-task" id="add-bar-task" style="display:none">
@@ -452,6 +466,7 @@ let DOC = null;
 
 const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
 const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
+const EMOJIS_LINKS = ['🔗','📌','📚','🎬','🎵','💡','🌐','⭐'];
 const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
 
 const PRI = {
@@ -579,8 +594,9 @@ function renderHome() {
     const total  = list.items.length;
     const p      = isTask ? PRI : null;
 
-    const typeColor = isTask ? '#27ae60' : '#4a90d9';
-    const typeLabel = isTask ? '✅ משימות' : '🛒 קניות';
+    const isLinks   = list.type === 'links';
+    const typeColor = isTask ? '#27ae60' : isLinks ? '#e67e22' : '#4a90d9';
+    const typeLabel = isTask ? '✅ משימות' : isLinks ? '🔗 הפניות' : '🛒 קניות';
 
     const card = document.createElement('div');
     card.className = 'list-card';
@@ -679,11 +695,12 @@ function selectType(t) {
   selectedType = t;
   document.getElementById('type-shop').classList.toggle('selected',  t === 'shop');
   document.getElementById('type-tasks').classList.toggle('selected', t === 'tasks');
+  document.getElementById('type-links').classList.toggle('selected', t === 'links');
   buildEmojiRow();
 }
 
 function buildEmojiRow() {
-  const emojis = selectedType === 'shop' ? EMOJIS_SHOP : EMOJIS_TASKS;
+  const emojis = selectedType === 'tasks' ? EMOJIS_TASKS : selectedType === 'links' ? EMOJIS_LINKS : EMOJIS_SHOP;
   selectedEmoji = emojis[0];
   const row = document.getElementById('emoji-row');
   row.innerHTML = '';
@@ -732,24 +749,27 @@ function createList() {
 function openList(idx) {
   currentListIdx = idx;
   const list = data.lists[idx];
-  const isTask = list.type === 'tasks';
-  const hdrColor = isTask ? '#27ae60' : list.color;
+  const isTask  = list.type === 'tasks';
+  const isLinks = list.type === 'links';
 
   document.getElementById('detail-icon').textContent  = list.emoji;
   document.getElementById('detail-title').textContent = list.name;
   document.getElementById('detail-header').style.background =
-    isTask ? 'linear-gradient(135deg,#27ae60,#1e8449)'
-           : `linear-gradient(135deg,${list.color},${list.color}bb)`;
+    isTask  ? 'linear-gradient(135deg,#27ae60,#1e8449)'  :
+    isLinks ? 'linear-gradient(135deg,#e67e22,#ca6f1e)'  :
+              `linear-gradient(135deg,${list.color},${list.color}bb)`;
 
-  document.getElementById('add-bar-shop').style.display = isTask ? 'none' : 'flex';
-  document.getElementById('add-bar-task').style.display = isTask ? 'flex' : 'none';
+  document.getElementById('add-bar-shop').style.display  = (!isTask && !isLinks) ? 'flex' : 'none';
+  document.getElementById('add-bar-task').style.display  = isTask  ? 'flex' : 'none';
+  document.getElementById('add-bar-links').style.display = isLinks ? 'flex' : 'none';
 
-  if (!isTask) document.getElementById('new-item-input').value = '';
-  else { document.getElementById('new-task-input').value = ''; document.getElementById('new-task-date').value = ''; }
+  if (!isTask && !isLinks) document.getElementById('new-item-input').value = '';
+  else if (isTask) { document.getElementById('new-task-input').value = ''; document.getElementById('new-task-date').value = ''; }
+  else { document.getElementById('new-link-name').value = ''; document.getElementById('new-link-url').value = ''; }
 
   showScreen('screen-detail');
   setTimeout(() => {
-    const inp = isTask ? 'new-task-input' : 'new-item-input';
+    const inp = isTask ? 'new-task-input' : isLinks ? 'new-link-name' : 'new-item-input';
     document.getElementById(inp).focus();
   }, 150);
 
@@ -781,12 +801,13 @@ function renderItems() {
   }
 
   if (list.type === 'tasks') {
-    // sort: high → medium → low → none, done last
     const sorted = [...list.items.entries()].sort(([,a],[,b]) => {
       if (a.done !== b.done) return a.done ? 1 : -1;
       return PRI_ORDER.indexOf(a.priority||'none') - PRI_ORDER.indexOf(b.priority||'none');
     });
     sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
+  } else if (list.type === 'links') {
+    list.items.forEach((item, i) => renderLinkRow(container, i, item));
   } else {
     list.items.forEach((item, i) => renderShopRow(container, i, item));
   }
@@ -839,6 +860,33 @@ function renderTaskCard(container, i, item) {
       </div>
     </div>`;
   container.appendChild(card);
+}
+
+function renderLinkRow(container, i, item) {
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.style = 'cursor:pointer';
+  row.innerHTML = `
+    <span style="font-size:20px">🔗</span>
+    <div style="flex:1;min-width:0">
+      <div class="item-text" style="font-weight:600">${item.text}</div>
+      <div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.url||''}</div>
+    </div>
+    <button class="item-del" onclick="event.stopPropagation();deleteItem(${i})">✕</button>`;
+  row.addEventListener('click', () => { if (item.url) window.open(item.url, '_blank'); });
+  container.appendChild(row);
+}
+
+function addLink() {
+  const name = document.getElementById('new-link-name').value.trim();
+  const url  = document.getElementById('new-link-url').value.trim();
+  if (!name) return;
+  const list = data.lists[currentListIdx];
+  list.items.push({ text: name, url: url || '', done: false });
+  save(); renderItems();
+  document.getElementById('new-link-name').value = '';
+  document.getElementById('new-link-url').value  = '';
+  document.getElementById('new-link-name').focus();
 }
 
 // ── Shopping CRUD ─────────────────────────────────────────────────────────
@@ -1075,7 +1123,8 @@ function shareListWhatsapp() {
   if (!list) return;
   const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
   list.items.forEach(item => {
-    lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
+    if (list.type === 'links') lines.push(`• ${item.text}${item.url ? '\n  ' + item.url : ''}`);
+    else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
   });
   const text = encodeURIComponent(lines.join('\n'));
   window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -1085,7 +1134,7 @@ function shareListWhatsapp() {
 Object.assign(window, {
   openNewListModal, createList, selectType,
   openList, goHome, openTemplate,
-  addItem, addTask, setPri,
+  addItem, addTask, addLink, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
