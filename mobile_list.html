@@ -807,9 +807,11 @@ function renderItems() {
     });
     sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
   } else if (list.type === 'links') {
-    list.items.forEach((item, i) => renderLinkRow(container, i, item));
+    const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    sorted.forEach(([i, item]) => renderLinkRow(container, i, item));
   } else {
-    list.items.forEach((item, i) => renderShopRow(container, i, item));
+    const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    sorted.forEach(([i, item]) => renderShopRow(container, i, item));
   }
 }
 
@@ -876,9 +878,11 @@ function renderLinkRow(container, i, item) {
     <button class="item-del" onclick="event.stopPropagation();deleteItem(${i})">✕</button>`;
   row.querySelector('.edit-link-btn').addEventListener('click', e => {
     e.stopPropagation();
+    row.removeEventListener('click', openLink);
     startEditLink(i, row);
   });
-  row.addEventListener('click', () => { if (item.url) window.open(item.url, '_blank'); });
+  function openLink() { if (item.url) window.open(item.url, '_blank'); }
+  row.addEventListener('click', openLink);
   container.appendChild(row);
 }
 
