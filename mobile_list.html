@@ -388,12 +388,12 @@
 
       <div class="add-bar-task" id="add-bar-stocks" style="display:none">
         <div class="add-bar-row">
-          <input class="add-input" id="new-stock-ticker"  placeholder="Ticker (AAPL...)" style="text-transform:uppercase;width:100px" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-price').focus()">
+          <input class="add-input" id="new-stock-ticker" placeholder="Ticker (AAPL...)" style="text-transform:uppercase;flex:0 0 90px" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-price').focus()">
           <input class="add-input" id="new-stock-price"  placeholder="שער המלצה" type="number" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-date').focus()">
-          <input class="add-input" id="new-stock-date"   type="date" onkeydown="if(event.key==='Enter') addStock()">
         </div>
         <div class="add-bar-row">
-          <input class="add-input" id="new-stock-analyst" placeholder="אנליסט (אופציונלי)" onkeydown="if(event.key==='Enter') addStock()">
+          <input class="add-input" id="new-stock-date"   type="date" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-analyst').focus()">
+          <input class="add-input" id="new-stock-analyst" placeholder="אנליסט" onkeydown="if(event.key==='Enter') addStock()">
           <button class="add-btn" style="background:#16a085" onclick="addStock()">+</button>
         </div>
       </div>
