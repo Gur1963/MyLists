@@ -388,8 +388,8 @@
 
       <div class="add-bar-task" id="add-bar-stocks" style="display:none">
         <div class="add-bar-row">
-          <input class="add-input" id="new-stock-ticker" placeholder="Ticker" style="text-transform:uppercase;width:70px;flex:none" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-price').focus()">
-          <input class="add-input" id="new-stock-price"  placeholder="שער המלצה" type="number" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-date').focus()">
+          <input class="add-input" id="new-stock-ticker" placeholder="Ticker" style="text-transform:uppercase;flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-price').focus()">
+          <input class="add-input" id="new-stock-price"  placeholder="שער" type="number" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-date').focus()">
         </div>
         <div class="add-bar-row">
           <input class="add-input" id="new-stock-date"   type="date" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-analyst').focus()">
