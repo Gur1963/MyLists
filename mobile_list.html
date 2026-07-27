@@ -914,65 +914,61 @@ async function renderStockRow(container, i, item) {
         <div style="font-size:11px;color:#aaa">${recDate} · המלצה: $${recPrice.toFixed(2)}</div>
       </div>
       <div id="stock-price-${i}" style="font-size:13px;font-weight:700;color:#888;white-space:nowrap">טוען...</div>
-      <button id="ai-btn-${i}" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
+      <button class="ai-stock-btn" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>
-    <div id="ai-result-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6"></div>`;
+    <div class="ai-stock-result" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6"></div>`;
+
+  const aiBtn    = card.querySelector('.ai-stock-btn');
+  const resultEl = card.querySelector('.ai-stock-result');
+  let currentPrice = null;
+
   container.appendChild(card);
 
   const current = await fetchPrice(item.ticker);
-  const priceEl = document.getElementById(`stock-price-${i}`);
-  let currentPrice = null;
-  if (current && priceEl) {
+  const priceEl = card.querySelector(`#stock-price-${i}`) || card.querySelector('[id^="stock-price"]');
+  if (current) {
     currentPrice = current;
     const pct   = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
     const color = pct >= 0 ? '#27ae60' : '#e74c3c';
     const sign  = pct >= 0 ? '+' : '';
-    priceEl.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>`;
-  } else if (priceEl) {
-    priceEl.textContent = 'לא נמצא';
+    if (priceEl) priceEl.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>`;
+  } else {
+    if (priceEl) priceEl.textContent = 'לא נמצא';
   }
 
-  document.getElementById(`ai-btn-${i}`).addEventListener('click', () =>
-    analyzeStock(i, item, recPrice, currentPrice)
-  );
-}
+  aiBtn.addEventListener('click', async () => {
+    aiBtn.textContent = '⏳';
+    aiBtn.disabled    = true;
+    resultEl.style.display = 'block';
+    resultEl.textContent   = 'מנתח...';
 
-async function analyzeStock(i, item, recPrice, currentPrice) {
-  const btn       = document.getElementById(`ai-btn-${i}`);
-  const resultEl  = document.getElementById(`ai-result-${i}`);
-  btn.textContent = '⏳';
-  btn.disabled    = true;
-  resultEl.style.display = 'block';
-  resultEl.textContent   = 'מנתח...';
+    const pct    = recPrice && currentPrice ? ((currentPrice - recPrice) / recPrice * 100).toFixed(1) : 'לא ידוע';
+    const prompt = `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${currentPrice ? '$'+currentPrice.toFixed(2) : 'לא ידוע'} (${pct}% שינוי). כתוב ניתוח קצר (3-4 משפטים בעברית): מה החברה עושה, מה יכול להסביר את התנועה, ומה כדאי לשים לב אליו.`;
 
-  const pct  = recPrice && currentPrice ? ((currentPrice - recPrice) / recPrice * 100).toFixed(1) : 'לא ידוע';
-  const prompt = `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}.
-השער הנוכחי הוא ${currentPrice ? '$'+currentPrice.toFixed(2) : 'לא ידוע'} (${pct}% שינוי מאז ההמלצה).
-כתוב ניתוח קצר (3-4 משפטים בעברית) על המניה: מה החברה עושה, מה יכול להסביר את התנועה במחיר, ומה כדאי לשים לב אליו.`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    resultEl.textContent = data.content?.[0]?.text || 'לא התקבלה תשובה';
-  } catch(e) {
-    resultEl.textContent = 'שגיאה: ' + e.message;
-  }
-  btn.textContent = '🤖';
-  btn.disabled    = false;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 300,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      resultEl.textContent = data.content?.[0]?.text || 'לא התקבלה תשובה';
+    } catch(e) {
+      resultEl.textContent = 'שגיאה: ' + e.message;
+    }
+    aiBtn.textContent = '🤖';
+    aiBtn.disabled    = false;
+  });
 }
 
 function addStock() {
