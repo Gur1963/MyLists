@@ -331,6 +331,11 @@
             </div>
           </div>
 
+          <div id="stock-mode-row" style="display:none;gap:8px;margin-bottom:4px;justify-content:center">
+            <div class="type-opt selected" id="smode-rec" onclick="selectStockMode('recommendations')" style="font-size:12px;padding:6px 10px">📊 המלצות אנליסטים</div>
+            <div class="type-opt"          id="smode-port" onclick="selectStockMode('portfolio')"      style="font-size:12px;padding:6px 10px">💼 תיק שלי</div>
+          </div>
+
           <div class="emoji-row" id="emoji-row"></div>
           <input class="modal-input" id="new-list-name" placeholder="שם הרשימה..." maxlength="30">
           <button class="modal-btn" onclick="createList()">צור רשימה</button>
@@ -723,12 +728,21 @@ function closeListMenu() {
 }
 
 // ── New list modal ────────────────────────────────────────────────────────
+let selectedStockMode = 'recommendations';
+
+function selectStockMode(mode) {
+  selectedStockMode = mode;
+  document.getElementById('smode-rec').classList.toggle('selected',  mode === 'recommendations');
+  document.getElementById('smode-port').classList.toggle('selected', mode === 'portfolio');
+}
+
 function selectType(t) {
   selectedType = t;
   document.getElementById('type-shop').classList.toggle('selected',   t === 'shop');
   document.getElementById('type-tasks').classList.toggle('selected',  t === 'tasks');
   document.getElementById('type-links').classList.toggle('selected',  t === 'links');
   document.getElementById('type-stocks').classList.toggle('selected', t === 'stocks');
+  document.getElementById('stock-mode-row').style.display = t === 'stocks' ? 'flex' : 'none';
   buildEmojiRow();
 }
 
@@ -773,7 +787,8 @@ function createList() {
   const items = selectedType === 'shop'
     ? data.template.map(t => ({ text: t, done: false }))
     : [];
-  data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, items });
+  const stockMode = selectedType === 'stocks' ? selectedStockMode : undefined;
+  data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
   save();
   document.getElementById('new-list-modal').classList.remove('open');
   renderHome();
@@ -804,7 +819,14 @@ function openList(idx) {
   if (!isTask && !isLinks && !isStocks) document.getElementById('new-item-input').value = '';
   else if (isTask)   { document.getElementById('new-task-input').value = ''; document.getElementById('new-task-date').value = ''; }
   else if (isLinks)  { document.getElementById('new-link-name').value = ''; document.getElementById('new-link-url').value = ''; }
-  else if (isStocks) { document.getElementById('new-stock-ticker').value = ''; document.getElementById('new-stock-price').value = ''; document.getElementById('new-stock-date').value = ''; document.getElementById('new-stock-analyst').value = ''; }
+  else if (isStocks) {
+    document.getElementById('new-stock-ticker').value = '';
+    document.getElementById('new-stock-price').value  = '';
+    document.getElementById('new-stock-date').value   = '';
+    document.getElementById('new-stock-analyst').value = '';
+    const isPortfolio = list.stockMode === 'portfolio';
+    document.getElementById('new-stock-analyst').placeholder = isPortfolio ? 'הערה (אופציונלי)' : 'אנליסט';
+  }
 
   showScreen('screen-detail');
   setTimeout(() => {
@@ -916,16 +938,20 @@ async function fetchPrice(ticker) {
 const stockCache = {};
 
 function renderStockRow(container, i, item) {
-  const recPrice = parseFloat(item.recPrice) || 0;
-  const recDate  = item.recDate || '';
-  const analyst  = item.analyst || '';
+  const recPrice  = parseFloat(item.recPrice) || 0;
+  const recDate   = item.recDate || '';
+  const analyst   = item.analyst || '';
+  const list      = data.lists[currentListIdx];
+  const isPortfolio = list.stockMode === 'portfolio';
+  const dateLabel = isPortfolio ? 'קניה' : 'המלצה';
+  const analystLabel = isPortfolio ? '' : analyst;
   const row = document.createElement('div');
   row.style = 'background:#fff;border-radius:12px;margin-bottom:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)';
   row.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:15px">${item.ticker} <span style="font-size:11px;color:#888;font-weight:400">${analyst}</span></div>
-        <div style="font-size:11px;color:#aaa">${recDate} · המלצה: $${recPrice.toFixed(2)}</div>
+        <div style="font-weight:700;font-size:15px">${item.ticker} <span style="font-size:11px;color:#888;font-weight:400">${analystLabel}</span></div>
+        <div style="font-size:11px;color:#aaa">${recDate} · ${dateLabel}: $${recPrice.toFixed(2)}</div>
       </div>
       <div id="sp-${i}" style="font-size:13px;font-weight:700;color:#888;white-space:nowrap">טוען...</div>
       <button onclick="aiAnalyze(${i})" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
@@ -980,7 +1006,15 @@ async function aiAnalyze(i) {
   } catch(e) { /* news fetch failed, continue without */ }
 
   const today = new Date().toLocaleDateString('he-IL', {year:'numeric',month:'long',day:'numeric'});
-  const prompt = `היום: ${today}.\nהמניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).${newsText}\n\nכתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
+  const list        = data.lists[currentListIdx];
+  const isPortfolio = list.stockMode === 'portfolio';
+  const context     = isPortfolio
+    ? `המניה ${item.ticker} נקנתה בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).`
+    : `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).`;
+  const instruction = isPortfolio
+    ? `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז הקניה לפי החדשות, האם ההשקעה הצליחה, ומה כדאי לשים לב אליו.`
+    : `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
+  const prompt = `היום: ${today}.\n${context}${newsText}\n\n${instruction}`;
 
   try {
     const res  = await fetch('https://api.anthropic.com/v1/messages', {
