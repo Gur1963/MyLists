@@ -964,7 +964,7 @@ async function aiAnalyze(i) {
       body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:300, messages:[{role:'user',content:prompt}] })
     });
     const d = await res.json();
-    resultEl.textContent = d.content?.[0]?.text || 'לא התקבלה תשובה';
+    resultEl.textContent = d.content?.[0]?.text || d.error?.message || JSON.stringify(d);
   } catch(e) {
     resultEl.textContent = 'שגיאה: ' + e.message;
   }
