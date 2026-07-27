@@ -972,7 +972,8 @@ async function aiAnalyze(i) {
     }
   } catch(e) { /* news fetch failed, continue without */ }
 
-  const prompt = `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).${newsText}\n\nכתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
+  const today = new Date().toLocaleDateString('he-IL', {year:'numeric',month:'long',day:'numeric'});
+  const prompt = `היום: ${today}.\nהמניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).${newsText}\n\nכתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
 
   try {
     const res  = await fetch('https://api.anthropic.com/v1/messages', {
