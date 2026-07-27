@@ -955,8 +955,24 @@ async function aiAnalyze(i) {
   resultEl.style.display = 'block';
   resultEl.textContent   = 'מנתח...';
 
-  const pct    = recPrice && current ? ((current - recPrice) / recPrice * 100).toFixed(1) : 'לא ידוע';
-  const prompt = `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי). כתוב ניתוח קצר (3-4 משפטים בעברית): מה החברה עושה, מה יכול להסביר את התנועה, ומה כדאי לשים לב אליו.`;
+  const pct = recPrice && current ? ((current - recPrice) / recPrice * 100).toFixed(1) : 'לא ידוע';
+
+  // fetch recent news headlines from Finnhub
+  let newsText = '';
+  try {
+    const today = new Date();
+    const from  = new Date(item.recDate || today);
+    const fromStr = from.toISOString().slice(0,10);
+    const toStr   = today.toISOString().slice(0,10);
+    const nr = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${item.ticker}&from=${fromStr}&to=${toStr}&token=${FINNHUB_KEY}`);
+    const news = await nr.json();
+    if (Array.isArray(news) && news.length > 0) {
+      const headlines = news.slice(0, 8).map(n => '- ' + n.headline).join('\n');
+      newsText = `\n\nכותרות חדשות מהתקופה:\n${headlines}`;
+    }
+  } catch(e) { /* news fetch failed, continue without */ }
+
+  const prompt = `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).${newsText}\n\nכתוב ניתוח קצר (4-5 משפטים בעברית): מה קרה בחברה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
 
   try {
     const res  = await fetch('https://api.anthropic.com/v1/messages', {
