@@ -538,11 +538,18 @@ function showAppScreen() {
   document.getElementById('app-screen').style.display  = 'flex';
 }
 
+let _loginInProgress = false;
 async function loginWithGoogle() {
+  if (_loginInProgress) return;
+  _loginInProgress = true;
   try {
     await signInWithPopup(auth, provider);
   } catch(e) {
-    alert('שגיאת כניסה: ' + e.message);
+    if (e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user') {
+      alert('שגיאת כניסה: ' + e.message);
+    }
+  } finally {
+    _loginInProgress = false;
   }
 }
 
