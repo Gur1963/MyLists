@@ -590,8 +590,9 @@ onAuthStateChanged(auth, async user => {
     await loadFromCloud();
     try {
       const keysSnap = await getDoc(doc(db, "config", "keys"));
-      if (keysSnap.exists()) CLAUDE_KEY = keysSnap.data().claude || '';
-    } catch(e) {}
+      if (keysSnap.exists()) { CLAUDE_KEY = keysSnap.data().claude || ''; console.log('key loaded:', CLAUDE_KEY.slice(0,10)); }
+      else console.log('keys doc not found');
+    } catch(e) { console.log('key load error:', e.message); }
     document.getElementById('user-name').textContent = user.displayName || user.email;
     const isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     document.getElementById('admin-nav-btn').style.display = isAdmin ? '' : 'none';
