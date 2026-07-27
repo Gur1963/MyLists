@@ -743,6 +743,7 @@ function selectType(t) {
   document.getElementById('type-links').classList.toggle('selected',  t === 'links');
   document.getElementById('type-stocks').classList.toggle('selected', t === 'stocks');
   document.getElementById('stock-mode-row').style.display = t === 'stocks' ? 'flex' : 'none';
+  if (t === 'stocks') selectStockMode('recommendations');
   buildEmojiRow();
 }
 
