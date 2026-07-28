@@ -871,6 +871,12 @@ function renderItems() {
     });
     sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
   } else if (list.type === 'stocks') {
+    // summary bar
+    const summaryEl = document.createElement('div');
+    summaryEl.id = 'stock-summary';
+    summaryEl.style = 'text-align:center;padding:6px 0 10px;font-size:12px;color:#aaa';
+    summaryEl.textContent = 'מחשב ממוצעים...';
+    container.appendChild(summaryEl);
     list.items.forEach((item, i) => renderStockRow(container, i, item));
   } else if (list.type === 'links') {
     const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
@@ -941,10 +947,39 @@ async function fetchPrice(ticker) {
 const stockCache = {};
 let stockRefreshTimer = null;
 
+function updateSummaryBar() {
+  const el = document.getElementById('stock-summary');
+  if (!el) return;
+  const list = data.lists[currentListIdx];
+  if (!list) return;
+  const dayPcts = [], recPcts = [];
+  list.items.forEach((item, i) => {
+    const cur = stockCache[i];
+    const open = stockOpenCache[i];
+    const rec  = parseFloat(item.recPrice) || 0;
+    if (cur && open) dayPcts.push((cur - open) / open * 100);
+    if (cur && rec)  recPcts.push((cur - rec)  / rec  * 100);
+  });
+  const avg = arr => arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : null;
+  const fmt = (v, label) => {
+    if (v === null) return '';
+    const color = v >= 0 ? '#27ae60' : '#e74c3c';
+    const sign  = v >= 0 ? '+' : '';
+    return `${label}: <span style="color:${color};font-weight:700">${sign}${v.toFixed(1)}%</span>`;
+  };
+  const dayAvg = avg(dayPcts);
+  const recAvg = avg(recPcts);
+  const parts = [fmt(dayAvg, 'יומי ממוצע'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
+  el.innerHTML = parts.join(' &nbsp;|&nbsp; ') || '&nbsp;';
+}
+
+const stockOpenCache = {};
+
 function updateStockEl(i, item, quote) {
   const recPrice = parseFloat(item.recPrice) || 0;
   const { current, open } = quote;
   stockCache[i] = current;
+  stockOpenCache[i] = open;
   const el = document.getElementById('sp-' + i);
   if (!el) return;
   if (current) {
@@ -962,6 +997,7 @@ function updateStockEl(i, item, quote) {
   } else {
     el.textContent = 'לא נמצא';
   }
+  updateSummaryBar();
 }
 
 function startStockRefresh() {
