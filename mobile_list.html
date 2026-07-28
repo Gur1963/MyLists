@@ -1434,7 +1434,6 @@ async function removeAllowedUser(email) {
 function shareListWhatsapp() {
   const list = data.lists[currentListIdx];
   if (!list) return;
-  const hasDone = list.items.some(item => item.done);
   const doShare = (includeDone) => {
     const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
     list.items.forEach(item => {
@@ -1445,11 +1444,7 @@ function shareListWhatsapp() {
     const text = encodeURIComponent(lines.join('\n'));
     location.href = `https://wa.me/?text=${text}`;
   };
-  if (hasDone) {
-    showConfirm('לכלול פריטים שסומנו כ"נעשו"?', doShare);
-  } else {
-    doShare(true);
-  }
+  showConfirm('לכלול פריטים שסומנו כ"נעשו"?', doShare);
 }
 
 // חשיפת פונקציות ל-HTML
