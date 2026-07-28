@@ -995,7 +995,7 @@ function updateSummaryBar() {
   const recAvg = avg(recPcts);
   const parts = [fmt(dayAvg, 'ממוצע יומי'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
   const now = new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  el.innerHTML = (parts.join(' &nbsp;|&nbsp; ') || '') + `<span style="color:#ccc;font-size:10px;margin-right:8px">עודכן: ${now}</span>`;
+  el.innerHTML = (parts.join(' &nbsp;|&nbsp; ') || '') + `<span style="color:#4a90d9;font-size:11px;font-weight:600;margin-right:8px">🕐 ${now}</span>`;
 }
 
 const stockOpenCache = {};
@@ -1018,7 +1018,7 @@ function updateStockEl(i, item, quote) {
     const dayStr   = dayPct !== null
       ? `<span style="font-size:10px;display:block">${openLabel}<span style="color:${dayColor}">יומי: ${daySign}${dayPct.toFixed(1)}%</span></span>`
       : '';
-    el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
+    el.innerHTML = `<span style="color:#222;font-weight:700">$${current.toFixed(2)}</span> <span style="color:${color};font-size:12px">(${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
   } else {
     el.textContent = 'לא נמצא';
   }
