@@ -785,13 +785,19 @@ function createList() {
   const name = document.getElementById('new-list-name').value.trim();
   if (!name) { document.getElementById('new-list-name').focus(); return; }
   const color = COLORS[data.lists.length % COLORS.length];
-  const items = selectedType === 'shop'
-    ? data.template.map(t => ({ text: t, done: false }))
-    : [];
   const stockMode = selectedType === 'stocks' ? selectedStockMode : undefined;
+  document.getElementById('new-list-modal').classList.remove('open');
+  if (selectedType === 'shop' && data.template.length > 0) {
+    if (confirm('לצרף את רשימת הבסיס?')) {
+      var items = data.template.map(t => ({ text: t, done: false }));
+    } else {
+      var items = [];
+    }
+  } else {
+    var items = [];
+  }
   data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
   save();
-  document.getElementById('new-list-modal').classList.remove('open');
   renderHome();
   openList(data.lists.length - 1);
 }
@@ -1398,8 +1404,11 @@ async function removeAllowedUser(email) {
 function shareListWhatsapp() {
   const list = data.lists[currentListIdx];
   if (!list) return;
+  const hasDone = list.items.some(item => item.done);
+  const includeDone = hasDone ? confirm('לכלול פריטים שסומנו כ"נעשו"?') : true;
   const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
   list.items.forEach(item => {
+    if (!includeDone && item.done) return;
     if (list.type === 'links') lines.push(`• ${item.text}${item.url ? '\n  ' + item.url : ''}`);
     else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
   });
