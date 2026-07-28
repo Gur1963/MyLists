@@ -307,9 +307,8 @@
 
 
       <!-- Confirm modal -->
-      <div class="modal-overlay" id="confirm-modal">
-        <div class="modal-sheet" style="text-align:center">
-          <div class="modal-handle"></div>
+      <div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;align-items:flex-end;justify-content:center">
+        <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 36px;text-align:center">
           <p id="confirm-text" style="font-size:16px;margin-bottom:20px;color:#222"></p>
           <div style="display:flex;gap:12px">
             <button id="confirm-no"  style="flex:1;padding:12px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer">לא</button>
@@ -686,14 +685,17 @@ function renameList(idx) {
 }
 
 function showConfirm(text, callback) {
+  const modal = document.getElementById('confirm-modal');
   document.getElementById('confirm-text').textContent = text;
-  document.getElementById('confirm-modal').classList.add('open');
+  modal.style.display = 'flex';
   const yes = document.getElementById('confirm-yes');
   const no  = document.getElementById('confirm-no');
+  const yesNew = yes.cloneNode(true);
+  const noNew  = no.cloneNode(true);
+  yes.replaceWith(yesNew);
+  no.replaceWith(noNew);
   const close = (result) => {
-    document.getElementById('confirm-modal').classList.remove('open');
-    yes.replaceWith(yes.cloneNode(true));
-    no.replaceWith(no.cloneNode(true));
+    modal.style.display = 'none';
     callback(result);
   };
   document.getElementById('confirm-yes').addEventListener('click', () => close(true));
@@ -1441,7 +1443,7 @@ function shareListWhatsapp() {
       else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
     });
     const text = encodeURIComponent(lines.join('\n'));
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    location.href = `https://wa.me/?text=${text}`;
   };
   if (hasDone) {
     showConfirm('לכלול פריטים שסומנו כ"נעשו"?', doShare);
