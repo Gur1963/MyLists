@@ -948,11 +948,16 @@ function updateStockEl(i, item, quote) {
   const el = document.getElementById('sp-' + i);
   if (!el) return;
   if (current) {
-    const pct   = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
-    const color = pct >= 0 ? '#27ae60' : '#e74c3c';
-    const sign  = pct >= 0 ? '+' : '';
-    const openStr = open ? `<span style="font-size:10px;color:#aaa;display:block">פתיחה: $${open.toFixed(2)}</span>` : '';
-    el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>${openStr}`;
+    const pct      = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
+    const color    = pct >= 0 ? '#27ae60' : '#e74c3c';
+    const sign     = pct >= 0 ? '+' : '';
+    const dayPct   = open ? ((current - open) / open * 100) : null;
+    const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
+    const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
+    const dayStr   = dayPct !== null
+      ? `<span style="font-size:10px;color:${dayColor};display:block">יומי: ${daySign}${dayPct.toFixed(1)}%</span>`
+      : '';
+    el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
   } else {
     el.textContent = 'לא נמצא';
   }
