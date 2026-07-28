@@ -306,6 +306,18 @@
       <div class="lists-container" id="lists-container"></div>
 
 
+      <!-- Confirm modal -->
+      <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-sheet" style="text-align:center">
+          <div class="modal-handle"></div>
+          <p id="confirm-text" style="font-size:16px;margin-bottom:20px;color:#222"></p>
+          <div style="display:flex;gap:12px">
+            <button id="confirm-no"  style="flex:1;padding:12px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer">לא</button>
+            <button id="confirm-yes" style="flex:1;padding:12px;border:none;border-radius:12px;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;cursor:pointer">כן</button>
+          </div>
+        </div>
+      </div>
+
       <!-- New list modal -->
       <div class="modal-overlay" id="new-list-modal">
         <div class="modal-sheet">
@@ -673,6 +685,21 @@ function renameList(idx) {
   input.onkeydown = e => { if (e.key === 'Enter') document.getElementById('rename-confirm-btn').click(); };
 }
 
+function showConfirm(text, callback) {
+  document.getElementById('confirm-text').textContent = text;
+  document.getElementById('confirm-modal').classList.add('open');
+  const yes = document.getElementById('confirm-yes');
+  const no  = document.getElementById('confirm-no');
+  const close = (result) => {
+    document.getElementById('confirm-modal').classList.remove('open');
+    yes.replaceWith(yes.cloneNode(true));
+    no.replaceWith(no.cloneNode(true));
+    callback(result);
+  };
+  document.getElementById('confirm-yes').addEventListener('click', () => close(true));
+  document.getElementById('confirm-no').addEventListener('click',  () => close(false));
+}
+
 function closeRenameModal() {
   document.getElementById('rename-modal').classList.remove('open');
 }
@@ -787,19 +814,20 @@ function createList() {
   const color = COLORS[data.lists.length % COLORS.length];
   const stockMode = selectedType === 'stocks' ? selectedStockMode : undefined;
   document.getElementById('new-list-modal').classList.remove('open');
+  const finishCreate = (withTemplate) => {
+    const items = (withTemplate && data.template.length > 0)
+      ? data.template.map(t => ({ text: t, done: false }))
+      : [];
+    data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
+    save();
+    renderHome();
+    openList(data.lists.length - 1);
+  };
   if (selectedType === 'shop' && data.template.length > 0) {
-    if (confirm('לצרף את רשימת הבסיס?')) {
-      var items = data.template.map(t => ({ text: t, done: false }));
-    } else {
-      var items = [];
-    }
+    showConfirm('לצרף את רשימת הבסיס?', finishCreate);
   } else {
-    var items = [];
+    finishCreate(false);
   }
-  data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
-  save();
-  renderHome();
-  openList(data.lists.length - 1);
 }
 
 // ── List detail ───────────────────────────────────────────────────────────
@@ -1405,15 +1433,21 @@ function shareListWhatsapp() {
   const list = data.lists[currentListIdx];
   if (!list) return;
   const hasDone = list.items.some(item => item.done);
-  const includeDone = hasDone ? confirm('לכלול פריטים שסומנו כ"נעשו"?') : true;
-  const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
-  list.items.forEach(item => {
-    if (!includeDone && item.done) return;
-    if (list.type === 'links') lines.push(`• ${item.text}${item.url ? '\n  ' + item.url : ''}`);
-    else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
-  });
-  const text = encodeURIComponent(lines.join('\n'));
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+  const doShare = (includeDone) => {
+    const lines = [`*${list.name}*`, `${'─'.repeat(list.name.length)}`, ''];
+    list.items.forEach(item => {
+      if (!includeDone && item.done) return;
+      if (list.type === 'links') lines.push(`• ${item.text}${item.url ? '\n  ' + item.url : ''}`);
+      else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
+    });
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+  if (hasDone) {
+    showConfirm('לכלול פריטים שסומנו כ"נעשו"?', doShare);
+  } else {
+    doShare(true);
+  }
 }
 
 // חשיפת פונקציות ל-HTML
