@@ -954,8 +954,9 @@ function updateStockEl(i, item, quote) {
     const dayPct   = open ? ((current - open) / open * 100) : null;
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
+    const openLabel = open ? `<span style="font-size:10px;color:#aaa">פתיחה: $${open.toFixed(2)} · </span>` : '';
     const dayStr   = dayPct !== null
-      ? `<span style="font-size:10px;color:${dayColor};display:block">יומי: ${daySign}${dayPct.toFixed(1)}%</span>`
+      ? `<span style="font-size:10px;display:block">${openLabel}<span style="color:${dayColor}">יומי: ${daySign}${dayPct.toFixed(1)}%</span></span>`
       : '';
     el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
   } else {
