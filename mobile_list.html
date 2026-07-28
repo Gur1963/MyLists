@@ -994,7 +994,8 @@ function updateSummaryBar() {
   const dayAvg = avg(dayPcts);
   const recAvg = avg(recPcts);
   const parts = [fmt(dayAvg, 'ממוצע יומי'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
-  el.innerHTML = parts.join(' &nbsp;|&nbsp; ') || '&nbsp;';
+  const now = new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.innerHTML = (parts.join(' &nbsp;|&nbsp; ') || '') + `<span style="color:#ccc;font-size:10px;margin-right:8px">עודכן: ${now}</span>`;
 }
 
 const stockOpenCache = {};
