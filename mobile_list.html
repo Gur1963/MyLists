@@ -969,7 +969,7 @@ function updateSummaryBar() {
   };
   const dayAvg = avg(dayPcts);
   const recAvg = avg(recPcts);
-  const parts = [fmt(dayAvg, 'יומי ממוצע'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
+  const parts = [fmt(dayAvg, 'ממוצע יומי'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
   el.innerHTML = parts.join(' &nbsp;|&nbsp; ') || '&nbsp;';
 }
 
