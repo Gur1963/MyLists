@@ -836,9 +836,11 @@ function openList(idx) {
   }, 150);
 
   renderItems();
+  if (isStocks) startStockRefresh(); else stopStockRefresh();
 }
 
 function goHome() {
+  stopStockRefresh();
   showScreen('screen-home');
   renderHome();
 }
@@ -931,12 +933,45 @@ function renderTaskCard(container, i, item) {
 async function fetchPrice(ticker) {
   try {
     const res  = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
-    const data = await res.json();
-    return data.c || null; // current price
-  } catch(e) { return null; }
+    const d = await res.json();
+    return { current: d.c || null, open: d.o || null };
+  } catch(e) { return { current: null, open: null }; }
 }
 
 const stockCache = {};
+let stockRefreshTimer = null;
+
+function updateStockEl(i, item, quote) {
+  const recPrice = parseFloat(item.recPrice) || 0;
+  const { current, open } = quote;
+  stockCache[i] = current;
+  const el = document.getElementById('sp-' + i);
+  if (!el) return;
+  if (current) {
+    const pct   = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
+    const color = pct >= 0 ? '#27ae60' : '#e74c3c';
+    const sign  = pct >= 0 ? '+' : '';
+    const openStr = open ? `<span style="font-size:10px;color:#aaa;display:block">פתיחה: $${open.toFixed(2)}</span>` : '';
+    el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>${openStr}`;
+  } else {
+    el.textContent = 'לא נמצא';
+  }
+}
+
+function startStockRefresh() {
+  stopStockRefresh();
+  stockRefreshTimer = setInterval(() => {
+    const list = data.lists[currentListIdx];
+    if (!list || list.type !== 'stocks') return;
+    list.items.forEach((item, i) => {
+      fetchPrice(item.ticker).then(quote => updateStockEl(i, item, quote));
+    });
+  }, 30000);
+}
+
+function stopStockRefresh() {
+  if (stockRefreshTimer) { clearInterval(stockRefreshTimer); stockRefreshTimer = null; }
+}
 
 function renderStockRow(container, i, item) {
   const recPrice  = parseFloat(item.recPrice) || 0;
@@ -961,19 +996,7 @@ function renderStockRow(container, i, item) {
     <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6"></div>`;
   container.appendChild(row);
 
-  fetchPrice(item.ticker).then(current => {
-    stockCache[i] = current;
-    const el = document.getElementById('sp-' + i);
-    if (!el) return;
-    if (current) {
-      const pct   = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
-      const color = pct >= 0 ? '#27ae60' : '#e74c3c';
-      const sign  = pct >= 0 ? '+' : '';
-      el.innerHTML = `<span style="color:${color}">$${current.toFixed(2)} (${sign}${pct.toFixed(1)}%)</span>`;
-    } else {
-      el.textContent = 'לא נמצא';
-    }
-  });
+  fetchPrice(item.ticker).then(quote => updateStockEl(i, item, quote));
 }
 
 async function aiAnalyze(i) {
