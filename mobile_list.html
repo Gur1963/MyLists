@@ -1057,10 +1057,11 @@ function renderStockRow(container, i, item) {
         <div style="font-size:11px;color:#aaa">${recDate} · ${dateLabel}: $${recPrice.toFixed(2)}</div>
       </div>
       <div id="sp-${i}" style="font-size:13px;font-weight:700;color:#888;white-space:nowrap">טוען...</div>
-      <button onclick="aiAnalyze(${i})" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
+      <button onclick="aiAnalyze(${i})" id="ai-btn-${i}" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
+      <button class="card-action-btn" onclick="editStockItem(${i})">✎</button>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>
-    <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6"></div>`;
+    <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6;position:relative"></div>`;
   container.appendChild(row);
 
   fetchPrice(item.ticker).then(quote => updateStockEl(i, item, quote));
@@ -1070,7 +1071,7 @@ async function aiAnalyze(i) {
   const item     = data.lists[currentListIdx].items[i];
   const recPrice = parseFloat(item.recPrice) || 0;
   const current  = stockCache[i] || null;
-  const btn      = document.querySelector(`[onclick="aiAnalyze(${i})"]`);
+  const btn      = document.getElementById(`ai-btn-${i}`);
   const resultEl = document.getElementById('ar-' + i);
   if (!btn || !resultEl) return;
 
@@ -1114,12 +1115,39 @@ async function aiAnalyze(i) {
       body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:600, messages:[{role:'user',content:prompt}] })
     });
     const d = await res.json();
-    resultEl.textContent = d.content?.[0]?.text || d.error?.message || JSON.stringify(d);
+    const txt = d.content?.[0]?.text || d.error?.message || JSON.stringify(d);
+    resultEl.innerHTML = `<button onclick="document.getElementById('ar-${i}').style.display='none';document.getElementById('ai-btn-${i}').textContent='🤖';" style="position:absolute;top:4px;left:4px;border:none;background:none;font-size:14px;cursor:pointer;color:#aaa">✕</button><span style="display:block;padding-right:4px">${txt.replace(/\n/g,'<br>')}</span>`;
   } catch(e) {
     resultEl.textContent = 'שגיאה: ' + e.message;
   }
-  btn.textContent = '🤖';
+  btn.textContent = '📖';
   btn.disabled    = false;
+  btn.onclick = () => {
+    const ar = document.getElementById('ar-' + i);
+    if (ar.style.display === 'none') ar.style.display = 'block';
+    else ar.style.display = 'none';
+  };
+}
+
+function editStockItem(i) {
+  const item = data.lists[currentListIdx].items[i];
+  const list = data.lists[currentListIdx];
+  const isPortfolio = list.stockMode === 'portfolio';
+  const analystLabel = isPortfolio ? 'הערה' : 'אנליסט';
+  showConfirm(`עדכן ${item.ticker}?`, (yes) => {
+    if (!yes) return;
+    const ticker  = prompt('טיקר:', item.ticker);
+    if (!ticker) return;
+    const price   = prompt('שער ' + (isPortfolio ? 'קניה' : 'המלצה') + ':', item.recPrice);
+    const date    = prompt('תאריך (YYYY-MM-DD):', item.recDate || '');
+    const analyst = prompt(analystLabel + ':', item.analyst || '');
+    item.ticker   = ticker.toUpperCase().trim();
+    item.recPrice = parseFloat(price) || item.recPrice;
+    item.recDate  = date || item.recDate;
+    item.analyst  = analyst || '';
+    save();
+    renderItems();
+  });
 }
 
 function addStock() {
@@ -1438,7 +1466,7 @@ function shareListWhatsapp() {
 
 // חשיפת פונקציות ל-HTML
 Object.assign(window, {
-  openNewListModal, createList, selectType, selectStockMode,
+  openNewListModal, createList, selectType, selectStockMode, editStockItem,
   openList, goHome, openTemplate,
   addItem, addTask, addLink, addStock, aiAnalyze, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
