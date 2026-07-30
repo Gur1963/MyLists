@@ -911,15 +911,54 @@ function renderItems() {
   }
 }
 
+function makeNotesPanel(i, item) {
+  const hasNote = !!item.notes;
+  const noteBtn = document.createElement('button');
+  noteBtn.className = 'card-action-btn';
+  noteBtn.title = 'הערות';
+  noteBtn.style.color = hasNote ? '#e67e22' : '#ccc';
+  noteBtn.textContent = '📝';
+
+  const panel = document.createElement('div');
+  panel.style.cssText = `display:${hasNote?'block':'none'};padding:6px 8px 2px;border-top:1px solid #f0f0f0;margin-top:4px`;
+  const ta = document.createElement('textarea');
+  ta.value = item.notes || '';
+  ta.placeholder = 'הערות...';
+  ta.style.cssText = 'width:100%;border:none;background:transparent;font-size:12px;color:#555;resize:none;outline:none;font-family:inherit;min-height:48px';
+  ta.addEventListener('input', () => {
+    item.notes = ta.value;
+    noteBtn.style.color = ta.value ? '#e67e22' : '#ccc';
+    save();
+  });
+  panel.appendChild(ta);
+
+  noteBtn.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') ta.focus();
+  });
+  return { noteBtn, panel };
+}
+
 function renderShopRow(container, i, item) {
+  const wrapper = document.createElement('div');
+  wrapper.style = 'background:#fff;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)';
   const row = document.createElement('div');
   row.className = 'item-row';
+  row.style = 'margin-bottom:0';
   row.innerHTML = `
     <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
     <span class="item-text ${item.done?'done':''}">${item.text}</span>
-    <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
-    <button class="item-del" onclick="deleteItem(${i})">✕</button>`;
-  container.appendChild(row);
+    <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
+  const { noteBtn, panel } = makeNotesPanel(i, item);
+  row.appendChild(noteBtn);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'item-del';
+  delBtn.textContent = '✕';
+  delBtn.onclick = () => deleteItem(i);
+  row.appendChild(delBtn);
+  wrapper.appendChild(row);
+  wrapper.appendChild(panel);
+  container.appendChild(wrapper);
 }
 
 function renderTaskCard(container, i, item) {
@@ -940,6 +979,7 @@ function renderTaskCard(container, i, item) {
       onclick="editDate(${i}, this)">+ תאריך</span>`;
   }
 
+  const { noteBtn, panel } = makeNotesPanel(i, item);
   card.innerHTML = `
     <div style="display:flex">
       <div style="width:5px;background:${item.done?'#ddd':pri.bg};border-radius:12px 0 0 12px;flex-shrink:0"></div>
@@ -948,6 +988,7 @@ function renderTaskCard(container, i, item) {
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
           <span class="item-text ${item.done?'done':''}" style="font-size:14px">${item.text}</span>
           <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
+          <span id="note-btn-task-${i}"></span>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
         </div>
         <div class="task-footer">
@@ -955,9 +996,12 @@ function renderTaskCard(container, i, item) {
           <span class="pri-tag" style="background:${pri.bg};color:${pri.fg}"
                 onclick="cyclePriority(${i})">${pri.label||'ללא עדיפות'}</span>
         </div>
+        <span id="note-panel-task-${i}"></span>
       </div>
     </div>`;
   container.appendChild(card);
+  card.querySelector(`#note-btn-task-${i}`).replaceWith(noteBtn);
+  card.querySelector(`#note-panel-task-${i}`).replaceWith(panel);
 }
 
 async function fetchPrice(ticker) {
@@ -1059,10 +1103,15 @@ function renderStockRow(container, i, item) {
       <div id="sp-${i}" style="font-size:13px;font-weight:700;color:#888;white-space:nowrap">טוען...</div>
       <button onclick="aiAnalyze(${i})" id="ai-btn-${i}" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
       <button class="card-action-btn" onclick="editStockItem(${i})">✎</button>
+      <span id="note-btn-stock-${i}"></span>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>
-    <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6;position:relative"></div>`;
+    <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6;position:relative"></div>
+    <span id="note-panel-stock-${i}"></span>`;
   container.appendChild(row);
+  const { noteBtn: snb, panel: sp } = makeNotesPanel(i, item);
+  row.querySelector(`#note-btn-stock-${i}`).replaceWith(snb);
+  row.querySelector(`#note-panel-stock-${i}`).replaceWith(sp);
 
   fetchPrice(item.ticker).then(quote => updateStockEl(i, item, quote));
 }
@@ -1166,17 +1215,25 @@ function addStock() {
 }
 
 function renderLinkRow(container, i, item) {
+  const wrapper = document.createElement('div');
+  wrapper.style = 'background:#fff;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)';
   const row = document.createElement('div');
   row.className = 'item-row';
-  row.style = 'cursor:pointer';
+  row.style = 'cursor:pointer;margin-bottom:0';
   row.innerHTML = `
     <span style="font-size:20px">🔗</span>
     <div style="flex:1;min-width:0">
       <div class="item-text" style="font-weight:600">${item.text}</div>
       <div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.url||''}</div>
     </div>
-    <button class="card-action-btn edit-link-btn">✎</button>
-    <button class="item-del" onclick="event.stopPropagation();deleteItem(${i})">✕</button>`;
+    <button class="card-action-btn edit-link-btn">✎</button>`;
+  const { noteBtn, panel } = makeNotesPanel(i, item);
+  row.appendChild(noteBtn);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'item-del';
+  delBtn.textContent = '✕';
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteItem(i); };
+  row.appendChild(delBtn);
   row.querySelector('.edit-link-btn').addEventListener('click', e => {
     e.stopPropagation();
     row.removeEventListener('click', openLink);
@@ -1184,7 +1241,9 @@ function renderLinkRow(container, i, item) {
   });
   function openLink() { if (item.url) window.open(item.url, '_blank'); }
   row.addEventListener('click', openLink);
-  container.appendChild(row);
+  wrapper.appendChild(row);
+  wrapper.appendChild(panel);
+  container.appendChild(wrapper);
 }
 
 function startEditLink(i, row) {
