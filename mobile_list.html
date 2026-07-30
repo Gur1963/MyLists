@@ -916,8 +916,8 @@ function makeNotesPanel(i, item) {
   const noteBtn = document.createElement('button');
   noteBtn.className = 'card-action-btn';
   noteBtn.title = 'הערות';
-  noteBtn.style.color = hasNote ? '#e67e22' : '#ccc';
-  noteBtn.textContent = '📝';
+  noteBtn.style.position = 'relative';
+  noteBtn.innerHTML = `📝${hasNote ? '<span style="position:absolute;top:4px;right:4px;width:7px;height:7px;background:#e67e22;border-radius:50%;display:block"></span>' : ''}`;
 
   const panel = document.createElement('div');
   panel.style.cssText = `display:none;padding:6px 8px 2px;border-top:1px solid #f0f0f0;margin-top:4px`;
@@ -927,7 +927,9 @@ function makeNotesPanel(i, item) {
   ta.style.cssText = 'width:100%;border:none;background:transparent;font-size:12px;color:#555;resize:none;outline:none;font-family:inherit;min-height:48px';
   ta.addEventListener('input', () => {
     item.notes = ta.value;
-    noteBtn.style.color = ta.value ? '#e67e22' : '#ccc';
+    const dot = noteBtn.querySelector('span');
+    if (ta.value && !dot) noteBtn.insertAdjacentHTML('beforeend', '<span style="position:absolute;top:4px;right:4px;width:7px;height:7px;background:#e67e22;border-radius:50%;display:block"></span>');
+    else if (!ta.value && dot) dot.remove();
     save();
   });
   panel.appendChild(ta);
