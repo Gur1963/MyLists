@@ -920,7 +920,7 @@ function makeNotesPanel(i, item) {
   noteBtn.textContent = '📝';
 
   const panel = document.createElement('div');
-  panel.style.cssText = `display:${hasNote?'block':'none'};padding:6px 8px 2px;border-top:1px solid #f0f0f0;margin-top:4px`;
+  panel.style.cssText = `display:none;padding:6px 8px 2px;border-top:1px solid #f0f0f0;margin-top:4px`;
   const ta = document.createElement('textarea');
   ta.value = item.notes || '';
   ta.placeholder = 'הערות...';
