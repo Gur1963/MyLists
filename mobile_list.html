@@ -912,6 +912,18 @@ function renderItems() {
   }
 }
 
+function makeSearchBtn(query) {
+  const btn = document.createElement('button');
+  btn.className = 'card-action-btn';
+  btn.title = 'חפש ברשת';
+  btn.textContent = '🔍';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+  });
+  return btn;
+}
+
 function makeNotesPanel(i, item) {
   const hasNote = !!item.notes;
   const noteBtn = document.createElement('button');
@@ -952,6 +964,7 @@ function renderShopRow(container, i, item) {
     <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
     <span class="item-text ${item.done?'done':''}">${item.text}</span>
     <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
+  row.appendChild(makeSearchBtn(item.text));
   const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
@@ -991,6 +1004,7 @@ function renderTaskCard(container, i, item) {
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
           <span class="item-text ${item.done?'done':''}" style="font-size:14px">${item.text}</span>
           <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
+          <span id="search-btn-task-${i}"></span>
           <span id="note-btn-task-${i}"></span>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
         </div>
@@ -1003,6 +1017,7 @@ function renderTaskCard(container, i, item) {
       </div>
     </div>`;
   container.appendChild(card);
+  card.querySelector(`#search-btn-task-${i}`).replaceWith(makeSearchBtn(item.text));
   card.querySelector(`#note-btn-task-${i}`).replaceWith(noteBtn);
   card.querySelector(`#note-panel-task-${i}`).replaceWith(panel);
 }
@@ -1106,12 +1121,14 @@ function renderStockRow(container, i, item) {
       <div id="sp-${i}" style="font-size:13px;font-weight:700;color:#888;white-space:nowrap">טוען...</div>
       <button onclick="aiAnalyze(${i})" id="ai-btn-${i}" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
       <button class="card-action-btn" onclick="editStockItem(${i})">✎</button>
+      <span id="search-btn-stock-${i}"></span>
       <span id="note-btn-stock-${i}"></span>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>
     <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6;position:relative"></div>
     <span id="note-panel-stock-${i}"></span>`;
   container.appendChild(row);
+  row.querySelector(`#search-btn-stock-${i}`).replaceWith(makeSearchBtn(item.ticker));
   const { noteBtn: snb, panel: sp } = makeNotesPanel(i, item);
   row.querySelector(`#note-btn-stock-${i}`).replaceWith(snb);
   row.querySelector(`#note-panel-stock-${i}`).replaceWith(sp);
@@ -1230,6 +1247,7 @@ function renderLinkRow(container, i, item) {
       <div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.url||''}</div>
     </div>
     <button class="card-action-btn edit-link-btn">✎</button>`;
+  row.appendChild(makeSearchBtn(item.text));
   const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
