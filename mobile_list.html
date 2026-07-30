@@ -1536,6 +1536,14 @@ function shareListWhatsapp() {
     list.items.forEach(item => {
       if (!includeDone && item.done) return;
       if (list.type === 'links') lines.push(`• ${item.text}${item.url ? '\n  ' + item.url : ''}`);
+      else if (list.type === 'stocks') {
+        const cur = stockCache[list.items.indexOf(item)];
+        const rec = parseFloat(item.recPrice) || 0;
+        const pct = cur && rec ? ((cur - rec) / rec * 100).toFixed(1) : '?';
+        const sign = pct >= 0 ? '+' : '';
+        const isPortfolio = list.stockMode === 'portfolio';
+        lines.push(`• ${item.ticker} | ${isPortfolio?'קניה':'המלצה'}: $${rec.toFixed(2)} | נוכחי: ${cur?'$'+cur.toFixed(2):'?'} (${sign}${pct}%) | ${item.analyst||''} ${item.recDate||''}`);
+      }
       else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
     });
     const text = encodeURIComponent(lines.join('\n'));
