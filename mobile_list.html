@@ -808,13 +808,14 @@ function createList() {
   const name = document.getElementById('new-list-name').value.trim();
   if (!name) { document.getElementById('new-list-name').focus(); return; }
   const color = COLORS[data.lists.length % COLORS.length];
-  const stockMode = selectedType === 'stocks' ? selectedStockMode : undefined;
   document.getElementById('new-list-modal').classList.remove('open');
   const finishCreate = async (withTemplate) => {
     const items = (withTemplate && data.template.length > 0)
       ? data.template.map(t => ({ text: t, done: false }))
       : [];
-    data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
+    const listObj = { name, emoji: selectedEmoji, color, type: selectedType, items };
+    if (selectedType === 'stocks') listObj.stockMode = selectedStockMode;
+    data.lists.push(listObj);
     await save();
     renderHome();
     openList(data.lists.length - 1);
