@@ -509,7 +509,12 @@ let selectedType   = 'shop';
 let newTaskPri     = 'none';
 
 async function save() {
-  if (DOC) await setDoc(DOC, data);
+  if (!DOC) return;
+  try {
+    await setDoc(DOC, data);
+  } catch(e) {
+    alert('שגיאת שמירה: ' + e.message);
+  }
 }
 
 async function loadFromCloud() {
