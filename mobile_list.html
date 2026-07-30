@@ -810,12 +810,12 @@ function createList() {
   const color = COLORS[data.lists.length % COLORS.length];
   const stockMode = selectedType === 'stocks' ? selectedStockMode : undefined;
   document.getElementById('new-list-modal').classList.remove('open');
-  const finishCreate = (withTemplate) => {
+  const finishCreate = async (withTemplate) => {
     const items = (withTemplate && data.template.length > 0)
       ? data.template.map(t => ({ text: t, done: false }))
       : [];
     data.lists.push({ name, emoji: selectedEmoji, color, type: selectedType, stockMode, items });
-    save();
+    await save();
     renderHome();
     openList(data.lists.length - 1);
   };
