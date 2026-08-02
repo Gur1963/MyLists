@@ -330,6 +330,10 @@
               <span class="type-icon">📈</span>
               <span class="type-label">מניות</span>
             </div>
+            <div class="type-opt" id="type-reminders" onclick="selectType('reminders')">
+              <span class="type-icon">🔔</span>
+              <span class="type-label">תזכורות</span>
+            </div>
           </div>
 
           <div id="stock-mode-row" style="display:none;gap:8px;margin-bottom:4px;justify-content:center">
@@ -431,6 +435,24 @@
         </div>
       </div>
 
+      <div class="add-bar-task" id="add-bar-reminders" style="display:none">
+        <div class="add-bar-row">
+          <input class="add-input" id="new-reminder-text" placeholder="לדוגמה: תור לרופא עור" style="flex:1"
+                 onkeydown="if(event.key==='Enter') document.getElementById('new-reminder-location').focus()">
+        </div>
+        <div class="add-bar-row">
+          <input class="add-input" id="new-reminder-location" placeholder="מיקום (אופציונלי)" style="flex:1"
+                 onkeydown="if(event.key==='Enter') document.getElementById('new-reminder-date').focus()">
+        </div>
+        <div class="add-bar-row">
+          <input class="date-input" id="new-reminder-date" type="date" style="flex:1"
+                 onkeydown="if(event.key==='Enter') document.getElementById('new-reminder-time').focus()">
+          <input class="date-input" id="new-reminder-time" type="time" style="flex:1"
+                 onkeydown="if(event.key==='Enter') addReminder()">
+          <button class="add-btn" style="background:#c0392b;width:38px;flex-shrink:0" onclick="addReminder()">+</button>
+        </div>
+      </div>
+
       <div class="items-list" id="items-list"></div>
     </div>
 
@@ -490,6 +512,7 @@ const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
 const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
 const EMOJIS_LINKS   = ['🔗','📌','📚','🎬','🎵','💡','🌐','⭐'];
 const EMOJIS_STOCKS  = ['📈','💹','🏦','💰','📊','🚀','💎','⚡'];
+const EMOJIS_REMINDERS = ['🔔','📅','⏰','🩺','💊','✈️','🎉','📌'];
 const FINNHUB_KEY    = 'd9itoahr01qvkt7e7t10d9itoahr01qvkt7e7t1g';
 let CLAUDE_KEY = '';
 const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
@@ -638,8 +661,9 @@ function renderHome() {
 
     const isLinks   = list.type === 'links';
     const isStocks  = list.type === 'stocks';
-    const typeColor = isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : '#4a90d9';
-    const typeLabel = isTask ? '✅ משימות' : isLinks ? '🔗 הפניות' : isStocks ? '📈 מניות' : '🛒 קניות';
+    const isReminders = list.type === 'reminders';
+    const typeColor = isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : isReminders ? '#c0392b' : '#4a90d9';
+    const typeLabel = isTask ? '✅ משימות' : isLinks ? '🔗 הפניות' : isStocks ? '📈 מניות' : isReminders ? '🔔 תזכורות' : '🛒 קניות';
 
     const card = document.createElement('div');
     card.className = 'list-card';
@@ -765,6 +789,7 @@ function selectType(t) {
   document.getElementById('type-tasks').classList.toggle('selected',  t === 'tasks');
   document.getElementById('type-links').classList.toggle('selected',  t === 'links');
   document.getElementById('type-stocks').classList.toggle('selected', t === 'stocks');
+  document.getElementById('type-reminders').classList.toggle('selected', t === 'reminders');
   document.getElementById('stock-mode-row').style.display = t === 'stocks' ? 'flex' : 'none';
   if (t === 'stocks') selectStockMode('recommendations');
   buildEmojiRow();
@@ -773,7 +798,8 @@ function selectType(t) {
 function buildEmojiRow() {
   const emojis = selectedType === 'tasks' ? EMOJIS_TASKS :
                  selectedType === 'links'  ? EMOJIS_LINKS :
-                 selectedType === 'stocks' ? EMOJIS_STOCKS : EMOJIS_SHOP;
+                 selectedType === 'stocks' ? EMOJIS_STOCKS :
+                 selectedType === 'reminders' ? EMOJIS_REMINDERS : EMOJIS_SHOP;
   selectedEmoji = emojis[0];
   const row = document.getElementById('emoji-row');
   row.innerHTML = '';
@@ -834,6 +860,7 @@ function openList(idx) {
   const isTask   = list.type === 'tasks';
   const isLinks  = list.type === 'links';
   const isStocks = list.type === 'stocks';
+  const isReminders = list.type === 'reminders';
 
   document.getElementById('detail-icon').textContent  = list.emoji;
   document.getElementById('detail-title').textContent = list.name;
@@ -841,14 +868,16 @@ function openList(idx) {
     isTask   ? 'linear-gradient(135deg,#27ae60,#1e8449)' :
     isLinks  ? 'linear-gradient(135deg,#e67e22,#ca6f1e)' :
     isStocks ? 'linear-gradient(135deg,#16a085,#1a7a64)' :
+    isReminders ? 'linear-gradient(135deg,#c0392b,#96281b)' :
                `linear-gradient(135deg,${list.color},${list.color}bb)`;
 
-  document.getElementById('add-bar-shop').style.display   = (!isTask && !isLinks && !isStocks) ? 'flex' : 'none';
+  document.getElementById('add-bar-shop').style.display   = (!isTask && !isLinks && !isStocks && !isReminders) ? 'flex' : 'none';
   document.getElementById('add-bar-task').style.display   = isTask   ? 'flex' : 'none';
   document.getElementById('add-bar-links').style.display  = isLinks  ? 'flex' : 'none';
   document.getElementById('add-bar-stocks').style.display = isStocks ? 'flex' : 'none';
+  document.getElementById('add-bar-reminders').style.display = isReminders ? 'flex' : 'none';
 
-  if (!isTask && !isLinks && !isStocks) document.getElementById('new-item-input').value = '';
+  if (!isTask && !isLinks && !isStocks && !isReminders) document.getElementById('new-item-input').value = '';
   else if (isTask)   { document.getElementById('new-task-input').value = ''; document.getElementById('new-task-date').value = ''; }
   else if (isLinks)  { document.getElementById('new-link-name').value = ''; document.getElementById('new-link-url').value = ''; }
   else if (isStocks) {
@@ -859,10 +888,16 @@ function openList(idx) {
     const isPortfolio = list.stockMode === 'portfolio';
     document.getElementById('new-stock-analyst').placeholder = isPortfolio ? 'הערה (אופציונלי)' : 'אנליסט';
   }
+  else if (isReminders) {
+    document.getElementById('new-reminder-text').value = '';
+    document.getElementById('new-reminder-location').value = '';
+    document.getElementById('new-reminder-date').value = '';
+    document.getElementById('new-reminder-time').value = '';
+  }
 
   showScreen('screen-detail');
   setTimeout(() => {
-    const inp = isTask ? 'new-task-input' : isLinks ? 'new-link-name' : isStocks ? 'new-stock-ticker' : 'new-item-input';
+    const inp = isTask ? 'new-task-input' : isLinks ? 'new-link-name' : isStocks ? 'new-stock-ticker' : isReminders ? 'new-reminder-text' : 'new-item-input';
     document.getElementById(inp).focus();
   }, 150);
 
@@ -912,6 +947,12 @@ function renderItems() {
   } else if (list.type === 'links') {
     const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
     sorted.forEach(([i, item]) => renderLinkRow(container, i, item));
+  } else if (list.type === 'reminders') {
+    const sorted = [...list.items.entries()].sort(([,a],[,b]) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return `${a.date||''}${a.time||''}`.localeCompare(`${b.date||''}${b.time||''}`);
+    });
+    sorted.forEach(([i, item]) => renderReminderRow(container, i, item));
   } else {
     const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
     sorted.forEach(([i, item]) => renderShopRow(container, i, item));
@@ -1305,6 +1346,60 @@ function addLink() {
   document.getElementById('new-link-name').focus();
 }
 
+// ── Reminders CRUD ───────────────────────────────────────────────────────
+function renderReminderRow(container, i, item) {
+  const dateLabel = item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString('he-IL', {day:'numeric',month:'short',year:'numeric'}) : '';
+  const timeLabel = item.time || '';
+  const row = document.createElement('div');
+  row.style = 'background:#fff;border-radius:12px;margin-bottom:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)';
+  row.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:8px">
+      <div class="item-check ${item.done?'checked':''}" style="margin-top:2px;flex-shrink:0" onclick="toggleItem(${i})"></div>
+      <div style="flex:1;min-width:0">
+        <div class="item-text ${item.done?'done':''}" style="font-weight:600;font-size:14px">${item.text}</div>
+        ${item.location ? `<div style="font-size:12px;color:#888;margin-top:2px">📍 ${item.location}</div>` : ''}
+        <div style="font-size:12px;color:#c0392b;margin-top:4px">🔔 ${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}</div>
+      </div>
+      <button class="card-action-btn" onclick="editReminderItem(${i})">✎</button>
+      <button class="item-del" onclick="deleteItem(${i})">✕</button>
+    </div>`;
+  container.appendChild(row);
+}
+
+function editReminderItem(i) {
+  const item = data.lists[currentListIdx].items[i];
+  showConfirm(`לערוך את "${item.text}"?`, (yes) => {
+    if (!yes) return;
+    const text = prompt('פרטי הפגישה:', item.text);
+    if (text === null || !text.trim()) return;
+    const location = prompt('מיקום (אופציונלי):', item.location || '');
+    const date = prompt('תאריך (YYYY-MM-DD):', item.date || '');
+    const time = prompt('שעה (HH:MM):', item.time || '');
+    item.text     = text.trim();
+    item.location = (location || '').trim();
+    item.date     = date || item.date;
+    item.time     = time || item.time;
+    item.notified = false; // אם השינוי הזיז את הפגישה, נרצה שההתראה תישלח מחדש בזמן הנכון
+    save();
+    renderItems();
+  });
+}
+
+function addReminder() {
+  const text     = document.getElementById('new-reminder-text').value.trim();
+  const location = document.getElementById('new-reminder-location').value.trim();
+  const date     = document.getElementById('new-reminder-date').value;
+  const time     = document.getElementById('new-reminder-time').value;
+  if (!text || !date || !time) return;
+  data.lists[currentListIdx].items.push({ text, location, date, time, done: false, notified: false });
+  save(); renderItems();
+  document.getElementById('new-reminder-text').value = '';
+  document.getElementById('new-reminder-location').value = '';
+  document.getElementById('new-reminder-date').value = '';
+  document.getElementById('new-reminder-time').value = '';
+  document.getElementById('new-reminder-text').focus();
+}
+
 // ── Shopping CRUD ─────────────────────────────────────────────────────────
 function addItem() {
   const input = document.getElementById('new-item-input');
@@ -1550,6 +1645,9 @@ function shareListWhatsapp() {
         const isPortfolio = list.stockMode === 'portfolio';
         lines.push(`• ${item.ticker} | ${isPortfolio?'קניה':'המלצה'}: $${rec.toFixed(2)} | נוכחי: ${cur?'$'+cur.toFixed(2):'?'} (${sign}${pct}%) | ${item.analyst||''} ${item.recDate||''}`);
       }
+      else if (list.type === 'reminders') {
+        lines.push(`🔔 ${item.text}${item.location ? ' | 📍 ' + item.location : ''} | ${item.date||''} ${item.time||''}`);
+      }
       else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
     });
     const text = encodeURIComponent(lines.join('\n'));
@@ -1562,7 +1660,7 @@ function shareListWhatsapp() {
 Object.assign(window, {
   openNewListModal, createList, selectType, selectStockMode, editStockItem,
   openList, goHome, openTemplate,
-  addItem, addTask, addLink, addStock, aiAnalyze, setPri,
+  addItem, addTask, addLink, addStock, addReminder, editReminderItem, aiAnalyze, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
