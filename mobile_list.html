@@ -1129,21 +1129,25 @@ function updateStockEl(i, item, quote) {
   const list = data.lists[currentListIdx];
   const isPortfolio = list && list.stockMode === 'portfolio';
   const recLabel = isPortfolio ? 'שער קניה' : 'שער המלצה';
+  const sinceLabel = isPortfolio ? 'קניה' : 'המלצה';
   if (current) {
-    const pct      = recPrice ? ((current - recPrice) / recPrice * 100) : 0;
-    const color    = pct >= 0 ? '#27ae60' : '#e74c3c';
-    const sign     = pct >= 0 ? '+' : '';
+    const pct      = recPrice ? ((current - recPrice) / recPrice * 100) : null;
+    const color    = pct !== null && pct >= 0 ? '#27ae60' : '#e74c3c';
+    const sign     = pct !== null && pct >= 0 ? '+' : '';
     const dayPct   = open ? ((current - open) / open * 100) : null;
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
     const curDate  = t ? new Date(t * 1000) : null;
-    const curDateLabel  = curDate ? ` (${fmtTradeDate(curDate)})` : '';
-    const prevDateLabel = curDate ? ` (${fmtTradeDate(prevTradingDay(curDate))})` : '';
-    const prevCloseStr = open ? `$${open.toFixed(2)}` : '-';
-    const dayStr = dayPct !== null
-      ? ` &nbsp;·&nbsp; <span style="color:${dayColor}">יומי: ${daySign}${dayPct.toFixed(1)}%</span>`
+    const curDateLabel = curDate ? ` (${fmtTradeDate(curDate)})` : '';
+    // מציגים מחיר אחד בלבד ("נוכחי") - כשאין מסחר זה יהיה בדיוק שער הסגירה האחרון,
+    // בלי מספר שני נפרד שמבלבל. האחוז היומי ליד המחיר כן מחושב נכון מול הסגירה הקודמת.
+    const dayBadge = dayPct !== null
+      ? ` <span style="color:${dayColor};font-weight:700">(${daySign}${dayPct.toFixed(1)}%)</span>`
       : '';
-    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; סגירה קודמת${prevDateLabel}: ${prevCloseStr} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="color:${color};font-weight:700">$${current.toFixed(2)}</span> <span style="color:${color}">(${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
+    const recBadge = pct !== null
+      ? ` &nbsp;·&nbsp; מאז ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
+      : '';
+    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
   } else {
     el.textContent = 'לא נמצא';
   }
@@ -1681,10 +1685,4 @@ Object.assign(window, {
   handleTouchStart, handleTouchEnd,
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
-  loginWithGoogle, logout, shareListWhatsapp,
-  openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser
-});
-</script>
-</div><!-- /app-screen -->
-</body>
-</html>
+  loginWithGoogle, logout, shar
