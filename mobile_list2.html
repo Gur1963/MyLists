@@ -1138,16 +1138,20 @@ function updateStockEl(i, item, quote) {
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
     const curDate  = t ? new Date(t * 1000) : null;
-    const curDateLabel = curDate ? ` (${fmtTradeDate(curDate)})` : '';
-    // מציגים מחיר אחד בלבד ("נוכחי") - כשאין מסחר זה יהיה בדיוק שער הסגירה האחרון,
-    // בלי מספר שני נפרד שמבלבל. האחוז היומי ליד המחיר כן מחושב נכון מול הסגירה הקודמת.
+    const curDateLabel  = curDate ? ` (${fmtTradeDate(curDate)})` : '';
+    const prevDateLabel = curDate ? ` (${fmtTradeDate(prevTradingDay(curDate))})` : '';
+    // מציגים גם את שער הסגירה הקודם במפורש (עם התאריך שלו), כדי שיהיה ברור מול מה
+    // מחושב האחוז ה"יומי" - זה שער אחר לגמרי משער ההמלצה, גם אם הנוכחי זהה להמלצה.
+    const prevCloseBadge = open
+      ? ` &nbsp;·&nbsp; סגירה קודמת${prevDateLabel}: $${open.toFixed(2)}`
+      : '';
     const dayBadge = dayPct !== null
       ? ` <span style="color:${dayColor};font-weight:700">(יומי ${daySign}${dayPct.toFixed(1)}%)</span>`
       : '';
     const recBadge = pct !== null
       ? ` &nbsp;·&nbsp; מאז ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
       : '';
-    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
+    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)}${prevCloseBadge} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
   } else {
     el.textContent = 'לא נמצא';
   }
