@@ -1073,7 +1073,7 @@ async function fetchPrice(ticker) {
   try {
     const res  = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
     const d = await res.json();
-    return { current: d.c || null, open: d.o || null };
+    return { current: d.c || null, open: d.pc || null };
   } catch(e) { return { current: null, open: null }; }
 }
 
@@ -1123,7 +1123,7 @@ function updateStockEl(i, item, quote) {
     const dayPct   = open ? ((current - open) / open * 100) : null;
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
-    const openLabel = open ? `<span style="font-size:10px;color:#aaa">פתיחה: $${open.toFixed(2)} · </span>` : '';
+    const openLabel = open ? `<span style="font-size:10px;color:#aaa">סגירה קודמת: $${open.toFixed(2)} · </span>` : '';
     const dayStr   = dayPct !== null
       ? `<span style="font-size:10px;display:block">${openLabel}<span style="color:${dayColor}">יומי: ${daySign}${dayPct.toFixed(1)}%</span></span>`
       : '';
