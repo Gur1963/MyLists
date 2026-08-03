@@ -1073,8 +1073,18 @@ async function fetchPrice(ticker) {
   try {
     const res  = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
     const d = await res.json();
-    return { current: d.c || null, open: d.pc || null };
-  } catch(e) { return { current: null, open: null }; }
+    return { current: d.c || null, open: d.pc || null, t: d.t || null };
+  } catch(e) { return { current: null, open: null, t: null }; }
+}
+
+// עוזר לחישוב תאריך יום המסחר הקודם (מדלג על שבת-ראשון, שהם סופ"ש בבורסה האמריקאית)
+function fmtTradeDate(d) {
+  return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+}
+function prevTradingDay(d) {
+  const pd = new Date(d);
+  do { pd.setUTCDate(pd.getUTCDate() - 1); } while (pd.getUTCDay() === 0 || pd.getUTCDay() === 6);
+  return pd;
 }
 
 const stockCache = {};
@@ -1111,7 +1121,7 @@ const stockOpenCache = {};
 
 function updateStockEl(i, item, quote) {
   const recPrice = parseFloat(item.recPrice) || 0;
-  const { current, open } = quote; // "open" holds previous trading day's close (Finnhub pc)
+  const { current, open, t } = quote; // "open" holds previous trading day's close (Finnhub pc)
   stockCache[i] = current;
   stockOpenCache[i] = open;
   const el = document.getElementById('sp-' + i);
@@ -1126,11 +1136,14 @@ function updateStockEl(i, item, quote) {
     const dayPct   = open ? ((current - open) / open * 100) : null;
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
+    const curDate  = t ? new Date(t * 1000) : null;
+    const curDateLabel  = curDate ? ` (${fmtTradeDate(curDate)})` : '';
+    const prevDateLabel = curDate ? ` (${fmtTradeDate(prevTradingDay(curDate))})` : '';
     const prevCloseStr = open ? `$${open.toFixed(2)}` : '-';
     const dayStr = dayPct !== null
       ? ` &nbsp;·&nbsp; <span style="color:${dayColor}">יומי: ${daySign}${dayPct.toFixed(1)}%</span>`
       : '';
-    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; סגירה אתמול: ${prevCloseStr} &nbsp;·&nbsp; נוכחי: <span style="color:${color};font-weight:700">$${current.toFixed(2)}</span> <span style="color:${color}">(${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
+    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; סגירה קודמת${prevDateLabel}: ${prevCloseStr} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="color:${color};font-weight:700">$${current.toFixed(2)}</span> <span style="color:${color}">(${sign}${pct.toFixed(1)}%)</span>${dayStr}`;
   } else {
     el.textContent = 'לא נמצא';
   }
