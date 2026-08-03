@@ -1142,7 +1142,7 @@ function updateStockEl(i, item, quote) {
     // מציגים מחיר אחד בלבד ("נוכחי") - כשאין מסחר זה יהיה בדיוק שער הסגירה האחרון,
     // בלי מספר שני נפרד שמבלבל. האחוז היומי ליד המחיר כן מחושב נכון מול הסגירה הקודמת.
     const dayBadge = dayPct !== null
-      ? ` <span style="color:${dayColor};font-weight:700">(${daySign}${dayPct.toFixed(1)}%)</span>`
+      ? ` <span style="color:${dayColor};font-weight:700">(יומי ${daySign}${dayPct.toFixed(1)}%)</span>`
       : '';
     const recBadge = pct !== null
       ? ` &nbsp;·&nbsp; מאז ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
@@ -1691,4 +1691,4 @@ Object.assign(window, {
 </script>
 </div><!-- /app-screen -->
 </body>
-</html>
+</h
