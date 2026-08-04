@@ -103,4 +103,17 @@ async function main() {
           changed = true;
         }
       }
-    
+    }
+
+    if (changed) {
+      await userDoc.ref.set(data);
+    }
+  }
+
+  console.log(`סיום. נשלחו ${sentCount} התראות.`);
+}
+
+main().catch(err => {
+  console.error('שגיאה כללית:', err);
+  process.exit(1);
+});
