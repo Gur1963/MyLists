@@ -1647,7 +1647,29 @@ async function addAllowedUser() {
 }
 
 function copyNtfyTopic(topic) {
-  navigator.clipboard.writeText(topic).then(() => alert('הועתק!'));
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(topic).then(() => alert('הועתק!')).catch(() => fallbackCopyText(topic));
+  } else {
+    fallbackCopyText(topic);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    alert('הועתק!');
+  } catch (e) {
+    alert('לא הצלחתי להעתיק אוטומטית. יש להעתיק ידנית:\n' + text);
+  }
+  document.body.removeChild(ta);
 }
 
 async function toggleUserActive(email, newState) {
