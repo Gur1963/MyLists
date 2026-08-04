@@ -1138,16 +1138,20 @@ function updateStockEl(i, item, quote) {
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
     const curDate  = t ? new Date(t * 1000) : null;
-    const curDateLabel = curDate ? ` (${fmtTradeDate(curDate)})` : '';
-    // מציגים מחיר אחד בלבד ("נוכחי") - כשאין מסחר זה יהיה בדיוק שער הסגירה האחרון,
-    // בלי מספר שני נפרד שמבלבל. האחוז היומי ליד המחיר כן מחושב נכון מול הסגירה הקודמת.
+    const curDateLabel  = curDate ? ` (${fmtTradeDate(curDate)})` : '';
+    const prevDateLabel = curDate ? ` (${fmtTradeDate(prevTradingDay(curDate))})` : '';
+    // מציגים גם את שער הסגירה הקודם במפורש (עם התאריך שלו), כדי שיהיה ברור מול מה
+    // מחושב האחוז ה"יומי" - זה שער אחר לגמרי משער ההמלצה, גם אם הנוכחי זהה להמלצה.
+    const prevCloseBadge = open
+      ? ` &nbsp;·&nbsp; סגירה קודמת${prevDateLabel}: $${open.toFixed(2)}`
+      : '';
     const dayBadge = dayPct !== null
       ? ` <span style="color:${dayColor};font-weight:700">(יומי ${daySign}${dayPct.toFixed(1)}%)</span>`
       : '';
     const recBadge = pct !== null
       ? ` &nbsp;·&nbsp; מאז ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
       : '';
-    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
+    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)}${prevCloseBadge} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
   } else {
     el.textContent = 'לא נמצא';
   }
@@ -1589,6 +1593,13 @@ function normalizeList(raw) {
   return (raw || []).map(u => typeof u === 'string' ? { email: u, active: true } : u);
 }
 
+// מחולל נושא (topic) פרטי ואקראי ל-ntfy, כדי שלכל משתמש תהיה התראה נפרדת משלו
+function generateNtfyTopic() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return 'mylists-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function renderAdminUsers() {
   const container = document.getElementById('admin-users-list');
   container.innerHTML = '<div style="color:#aaa;font-size:13px">טוען...</div>';
@@ -1603,6 +1614,7 @@ async function renderAdminUsers() {
       <div style="flex:1">
         <div style="font-size:14px;color:${u.active ? '#333' : '#aaa'}">${u.email}</div>
         <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
+        ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:2px">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:none;background:none;color:#2f6fed;cursor:pointer;font-size:10px;padding:0 4px">העתק</button></div>` : ''}
       </div>
       ${isAdmin ? '' : `
         <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer">
@@ -1623,13 +1635,19 @@ async function addAllowedUser() {
     const snap = await getDoc(CONFIG_DOC);
     const list = normalizeList(snap.exists() ? snap.data().allowed : []);
     if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
-    list.push({ email, active: true });
+    const ntfyTopic = generateNtfyTopic();
+    list.push({ email, active: true, ntfyTopic });
     await setDoc(CONFIG_DOC, { allowed: list });
     input.value = '';
     renderAdminUsers();
+    alert(`המשתמש נוסף בהצלחה!\n\nנושא ה-ntfy הפרטי שנוצר עבורו:\n${ntfyTopic}\n\nיש למסור לו את הנושא הזה כדי שירשם (Subscribe) אליו באפליקציית ntfy - כך ההתראות שלו יגיעו רק אליו.`);
   } catch(e) {
     alert('שגיאה: ' + e.message);
   }
+}
+
+function copyNtfyTopic(topic) {
+  navigator.clipboard.writeText(topic).then(() => alert('הועתק!'));
 }
 
 async function toggleUserActive(email, newState) {
