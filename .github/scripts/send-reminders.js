@@ -89,8 +89,16 @@ async function main() {
           console.log(`שולח תזכורת: "${item.text}" (${item.date} ${item.time})`);
           await sendPush(item);
           item.notified = true;
+          item.done = true;
           changed = true;
           sentCount++;
+        } else if (diffHours <= 0) {
+          // הזמן כבר עבר בלי שנשלחה התראה (למשל עקב עיכוב בהרצת GitHub Actions) -
+          // מסמנים כמטופל כדי שהפריט לא יישאר תקוע ברשימה כ"ממתין" לנצח.
+          console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל`);
+          item.notified = true;
+          item.done = true;
+          changed = true;
         }
       }
     }
