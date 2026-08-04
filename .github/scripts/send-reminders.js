@@ -83,9 +83,10 @@ async function main() {
         const when = israelToUtc(item.date, item.time);
         const diffHours = (when - now) / 3600000;
 
-        // חלון של 21-24 שעות לפני הפגישה - נותן מרווח ביטחון מול עיכובים
-        // אפשריים בתזמון של GitHub Actions, בזמן שדגל ה-notified מונע כפילויות.
-        if (diffHours <= 24 && diffHours > 21) {
+        // חלון רחב של 24 שעות ועד שעתיים לפני הפגישה - כל ריצה שתופסת את הפריט
+        // בטווח הזה תשלח (פעם אחת בלבד, כי דגל ה-notified מונע כפילויות). זה עמיד
+        // בפני עיכובים בתזמון של GitHub Actions, ולא תלוי בתפיסת חלון צר ומדויק.
+        if (diffHours <= 24 && diffHours > 2) {
           console.log(`שולח תזכורת: "${item.text}" (${item.date} ${item.time})`);
           await sendPush(item);
           item.notified = true;
@@ -93,7 +94,7 @@ async function main() {
           changed = true;
           sentCount++;
         } else if (diffHours <= 0) {
-          // הזמן כבר עבר בלי שנשלחה התראה (למשל עקב עיכוב בהרצת GitHub Actions) -
+          // הזמן כבר עבר בלי שנשלחה התראה (למשל כי גם החלון של 2-24 שעות פוספס) -
           // מסמנים רק כ-done (בלי notified) כדי שהפריט לא יישאר תקוע ברשימה כ"ממתין" לנצח,
           // ועדיין אפשר יהיה להבדיל: notified=true = נשלחה בפועל, done בלי notified = הזמן פשוט עבר.
           console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל (בלי notified)`);
@@ -108,10 +109,4 @@ async function main() {
     }
   }
 
-  console.log(`סיום. נשלחו ${sentCount} התראות.`);
-}
-
-main().catch(err => {
-  console.error('שגיאה כללית:', err);
-  process.exit(1);
-});
+  console.log(`סיום. נשלחו ${sentCount} התראות.`
