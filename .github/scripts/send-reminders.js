@@ -1,6 +1,6 @@
-// גרסה: V3-GUR-CHECK-4082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
+// גרסה: V4-PER-USER-TOPIC-4082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
 // בודק פעם ב-15 דקות את כל רשימות ה"תזכורות" בכל המשתמשים ב-Firestore,
-// ושולח התראת ntfy יום (24 שעות) לפני כל פגישה שעדיין לא נשלחה עליה התראה, בטווח של עד שעתיים לפני.
+// ושולח התראת ntfy לכל משתמש לנושא הפרטי שלו (אם יש), עד 24 שעות ולא פחות משעתיים לפני כל פגישה.
 
 const admin = require('firebase-admin');
 
@@ -42,14 +42,14 @@ function encodeHeaderUtf8(text) {
   return `=?UTF-8?B?${b64}?=`;
 }
 
-async function sendPush(item) {
+async function sendPush(item, topic) {
   const dateLabel = new Date(item.date + 'T00:00:00').toLocaleDateString('he-IL', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
   let body = `בתאריך ${dateLabel} בשעה ${item.time} יש לך פגישה עם ${item.text}`;
   if (item.location) body += `\nמיקום: ${item.location}`;
 
-  const res = await fetch(`https://ntfy.sh/${ntfyTopic}`, {
+  const res = await fetch(`https://ntfy.sh/${topic}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
@@ -66,6 +66,23 @@ async function sendPush(item) {
 
 async function main() {
   const now = new Date();
+
+  // טוען את מפת הנושאים הפרטיים (email -> ntfyTopic) מתוך config/allowed_users.
+  // כל משתמש שקיבל נושא אישי (נוצר אוטומטית במסך הניהול באפליקציה) יקבל את ההתראות שלו
+  // רק אליו; מי שאין לו נושא אישי (עדיין) ייפול חזרה לנושא הגלובלי הישן (NTFY_TOPIC).
+  const topicMap = {};
+  try {
+    const configSnap = await db.collection('config').doc('allowed_users').get();
+    if (configSnap.exists) {
+      const allowed = configSnap.data().allowed || [];
+      allowed.forEach(u => {
+        if (u && u.email && u.ntfyTopic) topicMap[u.email.toLowerCase()] = u.ntfyTopic;
+      });
+    }
+  } catch (e) {
+    console.log('אזהרה: לא הצלחתי לטעון נושאים אישיים, ממשיך עם ברירת המחדל הגלובלית:', e.message);
+  }
+
   const usersSnap = await db.collection('users').get();
   let sentCount = 0;
 
@@ -73,6 +90,17 @@ async function main() {
     const data = userDoc.data();
     if (!data.lists) continue;
     let changed = false;
+
+    // מזהה את הנושא האישי של המשתמש הזה (לפי המייל שלו ב-Firebase Auth), אחרת ברירת מחדל גלובלית
+    let userTopic = ntfyTopic;
+    try {
+      const authUser = await admin.auth().getUser(userDoc.id);
+      if (authUser.email && topicMap[authUser.email.toLowerCase()]) {
+        userTopic = topicMap[authUser.email.toLowerCase()];
+      }
+    } catch (e) {
+      // לא הצלחנו לזהות את המייל של המשתמש הזה - נמשיך עם ברירת המחדל הגלובלית
+    }
 
     for (const list of data.lists) {
       if (list.type !== 'reminders' || !list.items) continue;
@@ -89,7 +117,7 @@ async function main() {
         // בפני עיכובים בתזמון של GitHub Actions, ולא תלוי בתפיסת חלון צר ומדויק.
         if (diffHours <= 24 && diffHours > 2) {
           console.log(`שולח תזכורת: "${item.text}" (${item.date} ${item.time})`);
-          await sendPush(item);
+          await sendPush(item, userTopic);
           item.notified = true;
           item.done = true;
           changed = true;
