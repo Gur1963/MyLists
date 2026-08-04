@@ -94,9 +94,9 @@ async function main() {
           sentCount++;
         } else if (diffHours <= 0) {
           // הזמן כבר עבר בלי שנשלחה התראה (למשל עקב עיכוב בהרצת GitHub Actions) -
-          // מסמנים כמטופל כדי שהפריט לא יישאר תקוע ברשימה כ"ממתין" לנצח.
-          console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל`);
-          item.notified = true;
+          // מסמנים רק כ-done (בלי notified) כדי שהפריט לא יישאר תקוע ברשימה כ"ממתין" לנצח,
+          // ועדיין אפשר יהיה להבדיל: notified=true = נשלחה בפועל, done בלי notified = הזמן פשוט עבר.
+          console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל (בלי notified)`);
           item.done = true;
           changed = true;
         }
