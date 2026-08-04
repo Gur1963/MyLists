@@ -1614,7 +1614,7 @@ async function renderAdminUsers() {
       <div style="flex:1">
         <div style="font-size:14px;color:${u.active ? '#333' : '#aaa'}">${u.email}</div>
         <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
-        ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:2px">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:none;background:none;color:#2f6fed;cursor:pointer;font-size:10px;padding:0 4px">העתק</button></div>` : ''}
+        ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:4px;display:flex;align-items:center;gap:6px">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:1px solid #2f6fed;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600">📋 העתק</button></div>` : ''}
       </div>
       ${isAdmin ? '' : `
         <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer">
@@ -1726,7 +1726,7 @@ Object.assign(window, {
   addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout, shareListWhatsapp,
-  openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser
+  openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic
 });
 </script>
 </div><!-- /app-screen -->
