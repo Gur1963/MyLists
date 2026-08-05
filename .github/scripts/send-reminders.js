@@ -1,6 +1,7 @@
-// גרסה: V4-PER-USER-TOPIC-4082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
+// גרסה: V5-MULTI-OFFSET-4082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
 // בודק פעם ב-15 דקות את כל רשימות ה"תזכורות" בכל המשתמשים ב-Firestore,
-// ושולח התראת ntfy לכל משתמש לנושא הפרטי שלו (אם יש), עד 24 שעות ולא פחות משעתיים לפני כל פגישה.
+// ושולח התראת ntfy לכל משתמש לנושא הפרטי שלו (אם יש), לפי עד 3 זמני התראה נבחרים לכל פריט
+// (reminderOffsets); פריטים ישנים בלי הגדרה כזו ממשיכים לעבוד עם החלון הישן (24 עד 2 שעות לפני).
 
 const admin = require('firebase-admin');
 
@@ -42,18 +43,32 @@ function encodeHeaderUtf8(text) {
   return `=?UTF-8?B?${b64}?=`;
 }
 
-async function sendPush(item, topic) {
+// תרגום מספר שעות-לפני לתווית עברית קריאה (בהתאמה לרשימה ב-mobile_list.html)
+function offsetLabel(hours) {
+  if (Math.abs(hours - 168) < 0.01) return 'שבוע לפני';
+  if (Math.abs(hours - 72)  < 0.01) return '3 ימים לפני';
+  if (Math.abs(hours - 24)  < 0.01) return 'יום לפני';
+  if (Math.abs(hours - 12)  < 0.01) return 'חצי יום לפני';
+  if (Math.abs(hours - 2)   < 0.01) return 'שעתיים לפני';
+  if (Math.abs(hours - 1)   < 0.01) return 'שעה לפני';
+  if (Math.abs(hours - 0.5) < 0.01) return 'חצי שעה לפני';
+  if (hours < 1) return `${Math.round(hours * 60)} דקות לפני`;
+  return `${hours} שעות לפני`;
+}
+
+async function sendPush(item, topic, offsetText) {
   const dateLabel = new Date(item.date + 'T00:00:00').toLocaleDateString('he-IL', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
   let body = `בתאריך ${dateLabel} בשעה ${item.time} יש לך פגישה עם ${item.text}`;
   if (item.location) body += `\nמיקום: ${item.location}`;
+  const title = offsetText ? `🔔 תזכורת לפגישה (${offsetText})` : '🔔 תזכורת לפגישה מחר';
 
   const res = await fetch(`https://ntfy.sh/${topic}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Title': encodeHeaderUtf8('🔔 תזכורת לפגישה מחר'),
+      'Title': encodeHeaderUtf8(title),
       'Priority': '4',
       'Tags': 'bell',
     },
@@ -106,29 +121,50 @@ async function main() {
       if (list.type !== 'reminders' || !list.items) continue;
 
       for (const item of list.items) {
-        if (item.done || item.notified) continue;
+        if (item.done) continue;
         if (!item.date || !item.time) continue;
 
         const when = israelToUtc(item.date, item.time);
         const diffHours = (when - now) / 3600000;
 
-        // חלון רחב של 24 שעות ועד שעתיים לפני הפגישה - כל ריצה שתופסת את הפריט
-        // בטווח הזה תשלח (פעם אחת בלבד, כי דגל ה-notified מונע כפילויות). זה עמיד
-        // בפני עיכובים בתזמון של GitHub Actions, ולא תלוי בתפיסת חלון צר ומדויק.
-        if (diffHours <= 24 && diffHours > 2) {
-          console.log(`שולח תזכורת: "${item.text}" (${item.date} ${item.time})`);
-          await sendPush(item, userTopic);
-          item.notified = true;
-          item.done = true;
-          changed = true;
-          sentCount++;
-        } else if (diffHours <= 0) {
-          // הזמן כבר עבר בלי שנשלחה התראה (למשל כי גם החלון של 2-24 שעות פוספס) -
-          // מסמנים רק כ-done (בלי notified) כדי שהפריט לא יישאר תקוע ברשימה כ"ממתין" לנצח,
-          // ועדיין אפשר יהיה להבדיל: notified=true = נשלחה בפועל, done בלי notified = הזמן פשוט עבר.
-          console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל (בלי notified)`);
-          item.done = true;
-          changed = true;
+        if (Array.isArray(item.reminderOffsets) && item.reminderOffsets.length) {
+          // מצב חדש: עד 3 זמני התראה נבחרים לכל פריט. כל זמן נשלח פעם אחת בלבד
+          // (notifiedOffsets מונע כפילות), וכל ריצה שתופסת זמן שעדיין לא נשלח - תשלח אותו,
+          // גם אם באיחור. זה עמיד בפני עיכובים בתזמון של GitHub Actions.
+          const notifiedOffsets = Array.isArray(item.notifiedOffsets) ? item.notifiedOffsets : [];
+          for (const offset of item.reminderOffsets) {
+            const alreadySent = notifiedOffsets.some(o => Math.abs(o - offset) < 0.01);
+            if (alreadySent) continue;
+            if (diffHours <= offset && diffHours > 0) {
+              console.log(`שולח תזכורת (${offsetLabel(offset)}): "${item.text}" (${item.date} ${item.time})`);
+              await sendPush(item, userTopic, offsetLabel(offset));
+              notifiedOffsets.push(offset);
+              changed = true;
+              sentCount++;
+            }
+          }
+          item.notifiedOffsets = notifiedOffsets;
+          const allSent = item.reminderOffsets.every(offset => notifiedOffsets.some(o => Math.abs(o - offset) < 0.01));
+          if (allSent || diffHours <= 0) {
+            item.done = true;
+            changed = true;
+          }
+        } else if (!item.notified) {
+          // מצב ישן (תאימות לאחור) לפריטים מלפני התכונה הזו - חלון יחיד של 24 עד שעתיים לפני.
+          if (diffHours <= 24 && diffHours > 2) {
+            console.log(`שולח תזכורת: "${item.text}" (${item.date} ${item.time})`);
+            await sendPush(item, userTopic, null);
+            item.notified = true;
+            item.done = true;
+            changed = true;
+            sentCount++;
+          } else if (diffHours <= 0) {
+            // הזמן כבר עבר בלי שנשלחה התראה - מסמנים רק כ-done (בלי notified) כדי שהפריט
+            // לא יישאר תקוע ברשימה כ"ממתין" לנצח. notified+done = נשלחה בפועל, done בלבד = הזמן פשוט עבר.
+            console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל (בלי notified)`);
+            item.done = true;
+            changed = true;
+          }
         }
       }
     }
