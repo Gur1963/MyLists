@@ -467,6 +467,7 @@
           <span style="font-size:11px;color:#999">חזרתיות:</span>
           <select id="new-reminder-repeat" style="flex:1;padding:6px;border-radius:8px;border:1px solid #ddd;font-size:13px">
             <option value="none">חד פעמי</option>
+            <option value="daily">כל יום</option>
             <option value="weekly">כל שבוע</option>
             <option value="monthly">כל חודש</option>
             <option value="yearly">כל שנה</option>
@@ -1416,6 +1417,7 @@ function offsetLabel(hours) {
 // send-reminders.js ייצור אוטומטית עותק חדש שלו עם התאריך הבא (שבוע/חודש/שנה קדימה).
 const REPEAT_OPTIONS = [
   { value: 'none',    label: 'חד פעמי' },
+  { value: 'daily',   label: 'כל יום' },
   { value: 'weekly',  label: 'כל שבוע' },
   { value: 'monthly', label: 'כל חודש' },
   { value: 'yearly',  label: 'כל שנה' },
