@@ -76,6 +76,11 @@ function addMonthsToDate(y, m, d, monthsToAdd) {
 
 function advanceDate(dateStr, repeat) {
   const [y, m, d] = dateStr.split('-').map(Number);
+  if (repeat === 'daily') {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 1);
+    return toDateStr(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
   if (repeat === 'weekly') {
     const dt = new Date(Date.UTC(y, m - 1, d));
     dt.setUTCDate(dt.getUTCDate() + 7);
