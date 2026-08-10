@@ -462,6 +462,15 @@
           <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.5" onchange="onReminderOffsetChange(this)">חצי שעה לפני</label>
           <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.1667" onchange="onReminderOffsetChange(this)">10 דקות לפני</label>
         </div>
+        <div class="add-bar-row" style="font-size:12px;color:#666;padding:4px 2px;align-items:center;gap:8px">
+          <span style="font-size:11px;color:#999">חזרתיות:</span>
+          <select id="new-reminder-repeat" style="flex:1;padding:6px;border-radius:8px;border:1px solid #ddd;font-size:13px">
+            <option value="none">חד פעמי</option>
+            <option value="weekly">כל שבוע</option>
+            <option value="monthly">כל חודש</option>
+            <option value="yearly">כל שנה</option>
+          </select>
+        </div>
       </div>
 
       <div class="items-list" id="items-list"></div>
@@ -905,6 +914,7 @@ function openList(idx) {
     document.getElementById('new-reminder-date').value = '';
     document.getElementById('new-reminder-time').value = '';
     resetReminderOffsetCheckboxes([24]);
+    document.getElementById('new-reminder-repeat').value = 'none';
   }
 
   showScreen('screen-detail');
@@ -1400,6 +1410,20 @@ function offsetLabel(hours) {
   return opt ? opt.label : `${hours} שעות לפני`;
 }
 
+// אפשרויות חזרתיות לפריט תזכורת - כשפריט "חוזר" מסתיים (נשלחו כל ההתראות שלו / הזמן עבר),
+// send-reminders.js ייצור אוטומטית עותק חדש שלו עם התאריך הבא (שבוע/חודש/שנה קדימה).
+const REPEAT_OPTIONS = [
+  { value: 'none',    label: 'חד פעמי' },
+  { value: 'weekly',  label: 'כל שבוע' },
+  { value: 'monthly', label: 'כל חודש' },
+  { value: 'yearly',  label: 'כל שנה' },
+];
+
+function repeatLabel(value) {
+  const opt = REPEAT_OPTIONS.find(o => o.value === value);
+  return opt ? opt.label : '';
+}
+
 function onReminderOffsetChange(cb) {
   const checked = document.querySelectorAll('.reminder-offset-cb:checked');
   if (checked.length > 3) {
@@ -1424,6 +1448,7 @@ function renderReminderRow(container, i, item) {
   const timeLabel = item.time || '';
   const offsets = (item.reminderOffsets && item.reminderOffsets.length) ? item.reminderOffsets : [24];
   const offsetsText = offsets.map(offsetLabel).join(' · ');
+  const repeatText = (item.repeat && item.repeat !== 'none') ? repeatLabel(item.repeat) : '';
   const row = document.createElement('div');
   row.style = 'background:#fff;border-radius:12px;margin-bottom:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)';
   row.innerHTML = `
@@ -1434,6 +1459,7 @@ function renderReminderRow(container, i, item) {
         ${item.location ? `<div style="font-size:12px;color:#888;margin-top:2px">📍 ${item.location}</div>` : ''}
         <div style="font-size:12px;color:#c0392b;margin-top:4px">🔔 ${dateLabel}${timeLabel ? ' · ' + timeLabel : ''}</div>
         <div style="font-size:10px;color:#aaa;margin-top:2px">⏰ ${offsetsText}</div>
+        ${repeatText ? `<div style="font-size:10px;color:#8e44ad;margin-top:2px">🔁 ${repeatText}</div>` : ''}
       </div>
       <button class="card-action-btn" onclick="editReminderItem(${i})">✎</button>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
@@ -1465,11 +1491,22 @@ function editReminderItem(i) {
       if (uniqueNums.length) reminderOffsets = uniqueNums.map(n => REMINDER_OFFSET_OPTIONS[n - 1].hours);
     }
 
+    const repeatLegend = REPEAT_OPTIONS.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
+    const currentRepeat = item.repeat || 'none';
+    const currentRepeatNum = REPEAT_OPTIONS.findIndex(o => o.value === currentRepeat) + 1;
+    const repeatInput = prompt(`חזרתיות:\n${repeatLegend}`, String(currentRepeatNum || 1));
+    let repeat = currentRepeat;
+    if (repeatInput !== null) {
+      const n = parseInt(repeatInput.trim(), 10);
+      if (n >= 1 && n <= REPEAT_OPTIONS.length) repeat = REPEAT_OPTIONS[n - 1].value;
+    }
+
     item.text     = text.trim();
     item.location = (location || '').trim();
     item.date     = date || item.date;
     item.time     = time || item.time;
     item.reminderOffsets = reminderOffsets;
+    item.repeat   = repeat;
     item.notifiedOffsets = []; // איפוס - נשלח מחדש לפי הזמנים החדשים
     item.notified = false; // תאימות לאחור
     item.done     = false; // איפוס כדי שהפריט לא יישאר תקוע כ"בוצע" אחרי עריכה
@@ -1486,13 +1523,15 @@ function addReminder() {
   if (!text || !date || !time) return;
   let reminderOffsets = getSelectedReminderOffsets();
   if (!reminderOffsets.length) reminderOffsets = [24];
-  data.lists[currentListIdx].items.push({ text, location, date, time, done: false, notified: false, reminderOffsets, notifiedOffsets: [] });
+  const repeat = document.getElementById('new-reminder-repeat').value || 'none';
+  data.lists[currentListIdx].items.push({ text, location, date, time, done: false, notified: false, reminderOffsets, notifiedOffsets: [], repeat });
   save(); renderItems();
   document.getElementById('new-reminder-text').value = '';
   document.getElementById('new-reminder-location').value = '';
   document.getElementById('new-reminder-date').value = '';
   document.getElementById('new-reminder-time').value = '';
   resetReminderOffsetCheckboxes([24]);
+  document.getElementById('new-reminder-repeat').value = 'none';
   document.getElementById('new-reminder-text').focus();
 }
 
