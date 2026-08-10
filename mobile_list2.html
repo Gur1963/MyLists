@@ -461,6 +461,7 @@
           <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="1" onchange="onReminderOffsetChange(this)">שעה לפני</label>
           <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.5" onchange="onReminderOffsetChange(this)">חצי שעה לפני</label>
           <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.1667" onchange="onReminderOffsetChange(this)">10 דקות לפני</label>
+          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0" onchange="onReminderOffsetChange(this)">בדיוק בזמן הפגישה</label>
         </div>
         <div class="add-bar-row" style="font-size:12px;color:#666;padding:4px 2px;align-items:center;gap:8px">
           <span style="font-size:11px;color:#999">חזרתיות:</span>
@@ -1403,6 +1404,7 @@ const REMINDER_OFFSET_OPTIONS = [
   { hours: 1,      label: 'שעה לפני' },
   { hours: 0.5,    label: 'חצי שעה לפני' },
   { hours: 0.1667, label: '10 דקות לפני' },
+  { hours: 0,      label: 'בדיוק בזמן הפגישה' },
 ];
 
 function offsetLabel(hours) {
