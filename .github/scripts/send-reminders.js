@@ -1,7 +1,9 @@
-// גרסה: V5-MULTI-OFFSET-4082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
+// גרסה: V6-RECURRING-10082026 (סמן בדיקה - אם אתה רואה את השורה הזו, הדבקת את הקובץ הנכון)
 // בודק פעם ב-15 דקות את כל רשימות ה"תזכורות" בכל המשתמשים ב-Firestore,
 // ושולח התראת ntfy לכל משתמש לנושא הפרטי שלו (אם יש), לפי עד 3 זמני התראה נבחרים לכל פריט
 // (reminderOffsets); פריטים ישנים בלי הגדרה כזו ממשיכים לעבוד עם החלון הישן (24 עד 2 שעות לפני).
+// פריטים עם item.repeat (weekly/monthly/yearly) - ברגע שהם מסתיימים (done), נוצר אוטומטית
+// עותק חדש שלהם עם התאריך הבא, כדי שלא צריך להוסיף אותם ידנית כל פעם.
 
 const admin = require('firebase-admin');
 
@@ -54,6 +56,50 @@ function offsetLabel(hours) {
   if (Math.abs(hours - 0.5) < 0.01) return 'חצי שעה לפני';
   if (hours < 1) return `${Math.round(hours * 60)} דקות לפני`;
   return `${hours} שעות לפני`;
+}
+
+// מחשבת את התאריך הבא לפריט חוזר (weekly/monthly/yearly), כולל הצמדה לסוף החודש
+// כשהיום המקורי לא קיים בחודש היעד (למשל 31 בינואר -> 28/29 בפברואר).
+function toDateStr(y, m, d) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function addMonthsToDate(y, m, d, monthsToAdd) {
+  const totalMonths = (y * 12 + (m - 1)) + monthsToAdd;
+  const targetY = Math.floor(totalMonths / 12);
+  const targetM = (totalMonths % 12) + 1; // 1-12
+  const lastDayOfTargetMonth = new Date(Date.UTC(targetY, targetM, 0)).getUTCDate();
+  const targetD = Math.min(d, lastDayOfTargetMonth);
+  return toDateStr(targetY, targetM, targetD);
+}
+
+function advanceDate(dateStr, repeat) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (repeat === 'weekly') {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 7);
+    return toDateStr(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
+  if (repeat === 'monthly') return addMonthsToDate(y, m, d, 1);
+  if (repeat === 'yearly')  return addMonthsToDate(y, m, d, 12);
+  return null;
+}
+
+// בונה עותק חדש (הפעם הבאה) לפריט חוזר, עם כל שדות ההתראה מאופסים
+function buildNextOccurrence(item) {
+  const nextDate = advanceDate(item.date, item.repeat);
+  if (!nextDate) return null;
+  return {
+    text: item.text,
+    location: item.location,
+    date: nextDate,
+    time: item.time,
+    done: false,
+    notified: false,
+    reminderOffsets: item.reminderOffsets,
+    notifiedOffsets: [],
+    repeat: item.repeat,
+  };
 }
 
 async function sendPush(item, topic, offsetText) {
@@ -120,6 +166,10 @@ async function main() {
     for (const list of data.lists) {
       if (list.type !== 'reminders' || !list.items) continue;
 
+      // פריטים חוזרים חדשים שנוצרים בריצה הזו נאספים כאן ומתווספים לרשימה בסוף,
+      // כדי לא לשנות את המערך שעליו הלולאה הבאה עצמה עוברת.
+      const newOccurrences = [];
+
       for (const item of list.items) {
         if (item.done) continue;
         if (!item.date || !item.time) continue;
@@ -148,6 +198,13 @@ async function main() {
           if (allSent || diffHours <= 0) {
             item.done = true;
             changed = true;
+            if (item.repeat && item.repeat !== 'none') {
+              const next = buildNextOccurrence(item);
+              if (next) {
+                newOccurrences.push(next);
+                console.log(`פריט חוזר (${item.repeat}): "${item.text}" - נוצר עותק חדש לתאריך ${next.date}`);
+              }
+            }
           }
         } else if (!item.notified) {
           // מצב ישן (תאימות לאחור) לפריטים מלפני התכונה הזו - חלון יחיד של 24 עד שעתיים לפני.
@@ -158,14 +215,33 @@ async function main() {
             item.done = true;
             changed = true;
             sentCount++;
+            if (item.repeat && item.repeat !== 'none') {
+              const next = buildNextOccurrence(item);
+              if (next) {
+                newOccurrences.push(next);
+                console.log(`פריט חוזר (${item.repeat}): "${item.text}" - נוצר עותק חדש לתאריך ${next.date}`);
+              }
+            }
           } else if (diffHours <= 0) {
             // הזמן כבר עבר בלי שנשלחה התראה - מסמנים רק כ-done (בלי notified) כדי שהפריט
             // לא יישאר תקוע ברשימה כ"ממתין" לנצח. notified+done = נשלחה בפועל, done בלבד = הזמן פשוט עבר.
             console.log(`הזמן כבר עבר בלי שנשלחה התראה: "${item.text}" (${item.date} ${item.time}) - מסמן כמטופל (בלי notified)`);
             item.done = true;
             changed = true;
+            if (item.repeat && item.repeat !== 'none') {
+              const next = buildNextOccurrence(item);
+              if (next) {
+                newOccurrences.push(next);
+                console.log(`פריט חוזר (${item.repeat}): "${item.text}" - נוצר עותק חדש לתאריך ${next.date}`);
+              }
+            }
           }
         }
+      }
+
+      if (newOccurrences.length) {
+        list.items.push(...newOccurrences);
+        changed = true;
       }
     }
 
