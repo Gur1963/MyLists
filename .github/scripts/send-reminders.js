@@ -54,6 +54,7 @@ function offsetLabel(hours) {
   if (Math.abs(hours - 2)   < 0.01) return 'שעתיים לפני';
   if (Math.abs(hours - 1)   < 0.01) return 'שעה לפני';
   if (Math.abs(hours - 0.5) < 0.01) return 'חצי שעה לפני';
+  if (Math.abs(hours) < 0.01) return 'בדיוק בזמן הפגישה';
   if (hours < 1) return `${Math.round(hours * 60)} דקות לפני`;
   return `${hours} שעות לפני`;
 }
@@ -185,7 +186,11 @@ async function main() {
           for (const offset of item.reminderOffsets) {
             const alreadySent = notifiedOffsets.some(o => Math.abs(o - offset) < 0.01);
             if (alreadySent) continue;
-            if (diffHours <= offset && diffHours > 0) {
+            // offset=0 ("בדיוק בזמן הפגישה") הוא מקרה מיוחד: אי אפשר לדרוש diffHours>0 וגם
+            // diffHours<=0 יחד (לעולם לא יתקיים), אז עבורו מספיק שהגיע/עבר זמן הפגישה.
+            // לשאר הזמנים (X שעות לפני) עדיין דורשים שהפגישה טרם התחילה.
+            const shouldSend = offset > 0 ? (diffHours <= offset && diffHours > 0) : (diffHours <= 0);
+            if (shouldSend) {
               console.log(`שולח תזכורת (${offsetLabel(offset)}): "${item.text}" (${item.date} ${item.time})`);
               await sendPush(item, userTopic, offsetLabel(offset));
               notifiedOffsets.push(offset);
