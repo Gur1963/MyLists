@@ -196,6 +196,19 @@
   }
   .date-input:focus { border-color: #4a90d9; }
 
+  /* Search bar */
+  .search-bar {
+    background: #fff; padding: 8px 12px;
+    display: flex; gap: 8px; align-items: center;
+    border-bottom: 1px solid #eee;
+  }
+  .search-bar .add-input { padding: 8px 11px; }
+  .search-clear-btn {
+    border: none; background: #eee; color: #666;
+    width: 32px; height: 32px; border-radius: 8px;
+    font-size: 14px; cursor: pointer; flex-shrink: 0;
+  }
+
   /* Items list */
   .items-list { flex: 1; overflow-y: auto; padding: 10px 12px; }
 
@@ -474,6 +487,12 @@
             <option value="yearly">כל שנה</option>
           </select>
         </div>
+      </div>
+
+      <div class="search-bar" id="item-search-bar">
+        <input class="add-input" id="item-search-input" type="search" placeholder="🔍 חיפוש פריט..."
+               oninput="onItemSearch(this.value)">
+        <button class="search-clear-btn" id="item-search-clear" onclick="clearItemSearch()" style="display:none">✕</button>
       </div>
 
       <div class="items-list" id="items-list"></div>
@@ -920,6 +939,8 @@ function openList(idx) {
     document.getElementById('new-reminder-repeat').value = 'none';
   }
 
+  resetItemSearch();
+
   showScreen('screen-detail');
   setTimeout(() => {
     const inp = isTask ? 'new-task-input' : isLinks ? 'new-link-name' : isStocks ? 'new-stock-ticker' : isReminders ? 'new-reminder-text' : 'new-item-input';
@@ -941,6 +962,36 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+// ── Item search / filter ─────────────────────────────────────────────────
+let itemFilter = '';
+
+function itemMatchesFilter(item) {
+  if (!itemFilter) return true;
+  const hay = [item.text, item.name, item.url, item.ticker, item.analyst, item.location, item.notes]
+    .filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(itemFilter);
+}
+
+function onItemSearch(v) {
+  itemFilter = (v || '').trim().toLowerCase();
+  document.getElementById('item-search-clear').style.display = itemFilter ? 'block' : 'none';
+  renderItems();
+}
+
+function clearItemSearch() {
+  const inp = document.getElementById('item-search-input');
+  if (inp) inp.value = '';
+  onItemSearch('');
+}
+
+function resetItemSearch() {
+  itemFilter = '';
+  const inp = document.getElementById('item-search-input');
+  if (inp) inp.value = '';
+  const clr = document.getElementById('item-search-clear');
+  if (clr) clr.style.display = 'none';
+}
+
 // ── Render items ──────────────────────────────────────────────────────────
 function renderItems() {
   const list = data.lists[currentListIdx];
@@ -955,8 +1006,18 @@ function renderItems() {
     return;
   }
 
+  const entries = [...list.items.entries()].filter(([, item]) => itemMatchesFilter(item));
+
+  if (!entries.length) {
+    container.innerHTML = `<div class="empty-msg">
+      <span class="big">🔍</span>
+      לא נמצאו פריטים התואמים לחיפוש
+    </div>`;
+    return;
+  }
+
   if (list.type === 'tasks') {
-    const sorted = [...list.items.entries()].sort(([,a],[,b]) => {
+    const sorted = entries.sort(([,a],[,b]) => {
       if (a.done !== b.done) return a.done ? 1 : -1;
       return PRI_ORDER.indexOf(a.priority||'none') - PRI_ORDER.indexOf(b.priority||'none');
     });
@@ -968,18 +1029,18 @@ function renderItems() {
     summaryEl.style = 'text-align:center;padding:6px 0 10px;font-size:12px;color:#aaa';
     summaryEl.textContent = 'מחשב ממוצעים...';
     container.appendChild(summaryEl);
-    list.items.forEach((item, i) => renderStockRow(container, i, item));
+    entries.forEach(([i, item]) => renderStockRow(container, i, item));
   } else if (list.type === 'links') {
-    const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    const sorted = entries.sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
     sorted.forEach(([i, item]) => renderLinkRow(container, i, item));
   } else if (list.type === 'reminders') {
-    const sorted = [...list.items.entries()].sort(([,a],[,b]) => {
+    const sorted = entries.sort(([,a],[,b]) => {
       if (a.done !== b.done) return a.done ? 1 : -1;
       return `${a.date||''}${a.time||''}`.localeCompare(`${b.date||''}${b.time||''}`);
     });
     sorted.forEach(([i, item]) => renderReminderRow(container, i, item));
   } else {
-    const sorted = [...list.items.entries()].sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    const sorted = entries.sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
     sorted.forEach(([i, item]) => renderShopRow(container, i, item));
   }
 }
@@ -1843,7 +1904,7 @@ Object.assign(window, {
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic,
-  onReminderOffsetChange
+  onReminderOffsetChange, onItemSearch, clearItemSearch
 });
 </script>
 </div><!-- /app-screen -->
