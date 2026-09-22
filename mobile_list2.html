@@ -324,6 +324,13 @@
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
         <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px">גרסה 1.0.1</p>
       </div>
+
+      <div class="search-bar" id="home-search-bar">
+        <input class="add-input" id="home-search-input" type="search" placeholder="🔍 חיפוש רשימה..."
+               oninput="onHomeSearch(this.value)">
+        <button class="search-clear-btn" id="home-search-clear" onclick="clearHomeSearch()" style="display:none">✕</button>
+      </div>
+
       <div class="lists-container" id="lists-container"></div>
 
 
@@ -693,6 +700,21 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
+// ── Home search / filter ─────────────────────────────────────────────────
+let homeFilter = '';
+
+function onHomeSearch(v) {
+  homeFilter = (v || '').trim().toLowerCase();
+  document.getElementById('home-search-clear').style.display = homeFilter ? 'block' : 'none';
+  renderHome();
+}
+
+function clearHomeSearch() {
+  const inp = document.getElementById('home-search-input');
+  if (inp) inp.value = '';
+  onHomeSearch('');
+}
+
 // ── Home ──────────────────────────────────────────────────────────────────
 function renderHome() {
   const container = document.getElementById('lists-container');
@@ -701,7 +723,20 @@ function renderHome() {
   subtitle.textContent = n ? `${n} רשימות` : 'לחץ + ליצירת רשימה';
 
   container.innerHTML = '';
-  data.lists.forEach((list, i) => {
+
+  const entries = data.lists
+    .map((list, i) => ({ list, i }))
+    .filter(({ list }) => !homeFilter || list.name.toLowerCase().includes(homeFilter));
+
+  if (homeFilter && !entries.length) {
+    container.innerHTML = `<div class="empty-msg">
+      <span class="big">🔍</span>
+      לא נמצאו רשימות התואמות לחיפוש
+    </div>`;
+    return;
+  }
+
+  entries.forEach(({ list, i }) => {
     const isTask = list.type === 'tasks';
     const done   = list.items.filter(it => it.done).length;
     const total  = list.items.length;
@@ -1910,7 +1945,7 @@ Object.assign(window, {
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic,
-  onReminderOffsetChange, onItemSearch, clearItemSearch
+  onReminderOffsetChange, onItemSearch, clearItemSearch, onHomeSearch, clearHomeSearch
 });
 </script>
 </div><!-- /app-screen -->
