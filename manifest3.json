@@ -1,6 +1,6 @@
 {
-  "name": "הרשימות שלי",
-  "short_name": "הרשימות שלי",
+  "name": "Mylists",
+  "short_name": "Mylists",
   "description": "אפליקציית רשימות אישית — קניות, משימות, תזכורות, מניות וקישורים.",
   "start_url": "./mobile_list2_2.html",
   "scope": "./",
