@@ -286,9 +286,16 @@
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
     border: none; background: none; cursor: pointer;
     color: #bbb; font-size: 10px; padding: 4px 0;
+    position: relative;
   }
   .nav-btn .nav-icon { font-size: 19px; }
   .nav-btn.active { color: #4a90d9; }
+  .nav-badge {
+    position: absolute; top: 0; left: 50%; margin-left: 4px;
+    background: #e74c3c; color: #fff; font-size: 9px; font-weight: 700;
+    min-width: 15px; height: 15px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1;
+  }
 </style>
 </head>
 <body>
@@ -389,6 +396,16 @@
           <button onclick="addAllowedUser()" style="padding:10px 16px;background:#4a90d9;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer">הוסף</button>
         </div>
       </div>
+    </div>
+
+    <!-- ══ ARCHIVE ══ -->
+    <div class="screen" id="screen-archive">
+      <div class="detail-header" style="background:linear-gradient(135deg,#7f8c8d,#576574)">
+        <button class="back-btn" onclick="goHome()">‹</button>
+        <div class="detail-title">🗑 ארכיון</div>
+      </div>
+      <p style="font-size:12px;color:#999;text-align:center;padding:10px 16px 0">רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות</p>
+      <div class="lists-container" id="archive-list"></div>
     </div>
 
     <!-- ══ TEMPLATE ══ -->
@@ -527,6 +544,12 @@
           <span class="nav-icon">🏠</span>בית
         </button>
       </div>
+      <div style="flex:1;display:flex;justify-content:center">
+        <button class="nav-btn" onclick="openArchive()">
+          <span class="nav-icon">🗑</span>ארכיון
+          <span class="nav-badge" id="archive-badge" style="display:none">0</span>
+        </button>
+      </div>
       <div style="flex:1;display:flex;justify-content:center;gap:12px;align-items:center">
         <button class="fab-template" onclick="openTemplate()">⭐</button>
         <button class="fab" style="position:static;transform:none;width:48px;height:48px" onclick="openNewListModal()">+</button>
@@ -580,7 +603,8 @@ const PRI = {
 };
 const PRI_ORDER = ['high','medium','low','none'];
 
-let data = { lists: [], template: [] };
+let data = { lists: [], template: [], archive: [] };
+const ARCHIVE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // חודש
 let currentListIdx = null;
 let selectedEmoji  = EMOJIS_SHOP[0];
 let selectedType   = 'shop';
@@ -601,6 +625,7 @@ async function loadFromCloud() {
     if (snap.exists()) {
       data = snap.data();
       if (!data.template) data.template = [];
+      if (!data.archive)  data.archive  = [];
     } else {
       // העברת נתונים ישנים מ-gurgurs אם קיימים
       const oldDoc  = doc(db, "users", "gurgurs");
@@ -608,12 +633,15 @@ async function loadFromCloud() {
       if (oldSnap.exists()) {
         data = oldSnap.data();
         if (!data.template) data.template = [];
+        if (!data.archive)  data.archive  = [];
         await setDoc(DOC, data);
       }
     }
+    purgeExpiredArchive();
   } catch(e) {
     console.error("שגיאת טעינה:", e);
   }
+  updateArchiveBadge();
   renderHome();
 }
 
@@ -828,9 +856,86 @@ function duplicateList(idx) {
 
 function deleteList(idx) {
   if (confirm(`למחוק את הרשימה "${data.lists[idx].name}"?`)) {
-    data.lists.splice(idx, 1);
+    const [removed] = data.lists.splice(idx, 1);
+    data.archive.unshift({ list: removed, deletedAt: Date.now() });
     save(); renderHome();
+    updateArchiveBadge();
   }
+}
+
+// ── Archive ───────────────────────────────────────────────────────────────
+function purgeExpiredArchive() {
+  if (!data.archive || !data.archive.length) return;
+  const before = data.archive.length;
+  data.archive = data.archive.filter(e => Date.now() - e.deletedAt < ARCHIVE_RETENTION_MS);
+  if (data.archive.length !== before) save();
+}
+
+function updateArchiveBadge() {
+  const badge = document.getElementById('archive-badge');
+  if (!badge) return;
+  const n = (data.archive || []).length;
+  badge.textContent = n > 99 ? '99+' : n;
+  badge.style.display = n ? 'flex' : 'none';
+}
+
+function openArchive() {
+  renderArchive();
+  showScreen('screen-archive');
+}
+
+function renderArchive() {
+  const container = document.getElementById('archive-list');
+  container.innerHTML = '';
+
+  if (!data.archive.length) {
+    container.innerHTML = `<div class="empty-msg">
+      <span class="big">🗑</span>
+      הארכיון ריק
+    </div>`;
+    return;
+  }
+
+  data.archive.forEach((entry, i) => {
+    const list = entry.list;
+    const daysLeft = Math.max(0, Math.ceil((ARCHIVE_RETENTION_MS - (Date.now() - entry.deletedAt)) / 86400000));
+
+    const card = document.createElement('div');
+    card.className = 'list-card';
+    card.style.cursor = 'default';
+    card.innerHTML = `
+      <div class="list-icon" style="background:${list.color}22">${list.emoji}</div>
+      <div class="list-info">
+        <div class="list-name">${list.name}</div>
+        <div class="list-meta" style="flex-wrap:wrap">
+          <span>${list.items.length} פריטים</span>
+          <span>נמחק בעוד ${daysLeft} יום</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="card-action-btn restore-btn" title="שחזר">↩️</button>
+        <button class="card-action-btn purge-btn" style="color:#e74c3c" title="מחק לצמיתות">🗑</button>
+      </div>`;
+
+    card.querySelector('.restore-btn').addEventListener('click', () => restoreArchivedList(i));
+    card.querySelector('.purge-btn').addEventListener('click', () => purgeArchivedList(i));
+    container.appendChild(card);
+  });
+}
+
+function restoreArchivedList(i) {
+  const entry = data.archive[i];
+  data.archive.splice(i, 1);
+  data.lists.push(entry.list);
+  save(); renderArchive(); updateArchiveBadge();
+}
+
+function purgeArchivedList(i) {
+  const list = data.archive[i].list;
+  showConfirm(`למחוק את "${list.name}" לצמיתות? לא ניתן לשחזר.`, () => {
+    data.archive.splice(i, 1);
+    save(); renderArchive(); updateArchiveBadge();
+  });
 }
 
 function showListMenu(idx, pos) {
@@ -1708,8 +1813,37 @@ function toggleItem(i) {
 }
 
 function deleteItem(i) {
-  data.lists[currentListIdx].items.splice(i, 1);
+  const listIdx = currentListIdx;
+  const list = data.lists[listIdx];
+  const [removed] = list.items.splice(i, 1);
   save(); renderItems();
+
+  showUndoToast('הפריט נמחק', () => {
+    const l = data.lists[listIdx];
+    if (!l) return;
+    l.items.splice(Math.min(i, l.items.length), 0, removed);
+    save();
+    if (currentListIdx === listIdx) renderItems();
+  });
+}
+
+let _undoToastTimer = null;
+function showUndoToast(text, onUndo) {
+  clearTimeout(_undoToastTimer);
+  const existing = document.getElementById('undo-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'undo-toast';
+  toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom, 0px));background:#323232;color:#fff;padding:11px 16px;border-radius:12px;display:flex;align-items:center;gap:16px;font-size:14px;font-family:inherit;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:88%;';
+  toast.innerHTML = `<span>${text}</span><button style="background:none;border:none;color:#7fc4ff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap">↩ בטל</button>`;
+  toast.querySelector('button').onclick = () => {
+    clearTimeout(_undoToastTimer);
+    toast.remove();
+    onUndo();
+  };
+  document.body.appendChild(toast);
+  _undoToastTimer = setTimeout(() => toast.remove(), 4500);
 }
 
 let _touchTimer = null;
@@ -1945,7 +2079,8 @@ Object.assign(window, {
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic,
-  onReminderOffsetChange, onItemSearch, clearItemSearch, onHomeSearch, clearHomeSearch
+  onReminderOffsetChange, onItemSearch, clearItemSearch, onHomeSearch, clearHomeSearch,
+  openArchive
 });
 </script>
 </div><!-- /app-screen -->
