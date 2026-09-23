@@ -1708,22 +1708,35 @@ function cyclePriority(i) {
 
 // ── Shared ────────────────────────────────────────────────────────────────
 function toggleItem(i) {
-  const item = data.lists[currentListIdx].items[i];
+  const listIdx = currentListIdx;
+  const item = data.lists[listIdx].items[i];
   item.done = !item.done;
   save();
 
   if (toggleTimers.has(item)) { clearTimeout(toggleTimers.get(item)); toggleTimers.delete(item); }
+
   if (item.done) {
+    // כמו במחיקה: מציגים טוסט עם אפשרות "בטל", ורק אחרי שהוא נעלם הפריט
+    // בפועל קופץ לסוף הרשימה - כדי שהמשתמש לא יאבד אותו מהעין בלי התראה
     recentlyToggled.add(item);
+    renderItems();
+    const doneWord = data.lists[listIdx].type === 'shop' ? 'הפריט נקנה' : 'הפריט סומן כבוצע';
+    showUndoToast(doneWord, () => {
+      item.done = false;
+      recentlyToggled.delete(item);
+      if (toggleTimers.has(item)) { clearTimeout(toggleTimers.get(item)); toggleTimers.delete(item); }
+      save();
+      if (currentListIdx === listIdx) renderItems();
+    });
     toggleTimers.set(item, setTimeout(() => {
       recentlyToggled.delete(item);
       toggleTimers.delete(item);
       if (data.lists[currentListIdx]?.items.includes(item)) renderItems();
-    }, 900));
+    }, 4500));
   } else {
     recentlyToggled.delete(item);
+    renderItems();
   }
-  renderItems();
 }
 
 function deleteItem(i) {
@@ -1875,8 +1888,8 @@ async function renderAdminUsers() {
         <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
       </div>
       ${isAdmin ? '' : `
-        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 12px;height:32px;min-width:56px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
-          ${u.active ? 'השהה' : 'הפעל'}
+        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 12px;height:32px;min-width:64px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px">
+          ${u.active ? '⏸ השהה' : '▶ הפעל'}
         </button>
         <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:#fdecea;color:#e74c3c;padding:0;width:32px;height:32px;border-radius:8px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">✕</button>
       `}`;
