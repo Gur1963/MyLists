@@ -567,7 +567,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4g5PzhJfyMXfXlpDtbaMkheESumDOWqw",
@@ -585,6 +585,7 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 let DOC = null;
+let isAdminUser = false;
 
 const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
 const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
@@ -606,6 +607,11 @@ const PRI_ORDER = ['high','medium','low','none'];
 let data = { lists: [], template: [], archive: [] };
 const ARCHIVE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // חודש
 let currentListIdx = null;
+// כשמסמנים פריט כ"בוצע" הוא זז לסוף הרשימה ונעלם מהעין - נשהה קצת את המיון
+// כדי שהמשתמש יראה את הסימון לפני שהפריט קופץ למקום אחר (בדומה להשהיה בביטול מחיקה)
+const recentlyToggled = new Set();
+const toggleTimers = new WeakMap();
+function sortDoneVal(item) { return recentlyToggled.has(item) ? false : !!item.done; }
 let selectedEmoji  = EMOJIS_SHOP[0];
 let selectedType   = 'shop';
 let newTaskPri     = 'none';
@@ -657,21 +663,23 @@ function showAppScreen() {
 
 let _loginInProgress = false;
 async function loginWithGoogle() {
+  // משתמשים ב-redirect ולא ב-popup: על נייד popup לרוב נחסם/נכשל בפעימה
+  // הראשונה, מה שגורם למסך הכניסה עם גוגל להיראות כאילו הוא מופיע פעמיים
   if (_loginInProgress) return;
   _loginInProgress = true;
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithRedirect(auth, provider);
   } catch(e) {
-    if (e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user') {
-      alert('שגיאת כניסה: ' + e.message);
-    }
-  } finally {
+    alert('שגיאת כניסה: ' + e.message);
     _loginInProgress = false;
   }
 }
 
 async function logout() {
-  await signOut(auth);
+  // "יציאה" עוזבת את האפליקציה בלי להתנתק מגוגל - כך שבפעם הבאה שהאפליקציה
+  // נפתחת המשתמש נשאר מחובר ולא צריך לעבור שוב את מסך הכניסה עם גוגל
+  try { window.close(); } catch(e) {}
+  setTimeout(() => { try { history.back(); } catch(e) {} }, 50);
 }
 
 const ADMIN_EMAIL = 'gurgurs@gmail.com';
@@ -718,12 +726,16 @@ onAuthStateChanged(auth, async user => {
       else console.log('keys doc not found');
     } catch(e) { console.log('key load error:', e.message); }
     document.getElementById('user-name').textContent = user.displayName || user.email;
-    const isAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    document.getElementById('admin-nav-btn').style.display = isAdmin ? '' : 'none';
+    isAdminUser = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    document.getElementById('admin-nav-btn').style.display = isAdminUser ? '' : 'none';
+    // רשימות מסוג "מניות" ו"תזכורות" ניתנות ליצירה רק על ידי המנהל
+    document.getElementById('type-stocks').style.display    = isAdminUser ? '' : 'none';
+    document.getElementById('type-reminders').style.display = isAdminUser ? '' : 'none';
     showAppScreen();
   } else {
     currentUser = null;
     DOC = null;
+    isAdminUser = false;
     showLoginScreen();
   }
 });
@@ -972,6 +984,7 @@ function selectStockMode(mode) {
 }
 
 function selectType(t) {
+  if (!isAdminUser && (t === 'stocks' || t === 'reminders')) t = 'shop';
   selectedType = t;
   document.getElementById('type-shop').classList.toggle('selected',   t === 'shop');
   document.getElementById('type-tasks').classList.toggle('selected',  t === 'tasks');
@@ -1164,7 +1177,8 @@ function renderItems() {
 
   if (list.type === 'tasks') {
     const sorted = entries.sort(([,a],[,b]) => {
-      if (a.done !== b.done) return a.done ? 1 : -1;
+      const ad = sortDoneVal(a), bd = sortDoneVal(b);
+      if (ad !== bd) return ad ? 1 : -1;
       return PRI_ORDER.indexOf(a.priority||'none') - PRI_ORDER.indexOf(b.priority||'none');
     });
     sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
@@ -1177,16 +1191,17 @@ function renderItems() {
     container.appendChild(summaryEl);
     entries.forEach(([i, item]) => renderStockRow(container, i, item));
   } else if (list.type === 'links') {
-    const sorted = entries.sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    const sorted = entries.sort(([,a],[,b]) => (sortDoneVal(a)?1:0)-(sortDoneVal(b)?1:0));
     sorted.forEach(([i, item]) => renderLinkRow(container, i, item));
   } else if (list.type === 'reminders') {
     const sorted = entries.sort(([,a],[,b]) => {
-      if (a.done !== b.done) return a.done ? 1 : -1;
+      const ad = sortDoneVal(a), bd = sortDoneVal(b);
+      if (ad !== bd) return ad ? 1 : -1;
       return `${a.date||''}${a.time||''}`.localeCompare(`${b.date||''}${b.time||''}`);
     });
     sorted.forEach(([i, item]) => renderReminderRow(container, i, item));
   } else {
-    const sorted = entries.sort(([,a],[,b]) => (a.done?1:0)-(b.done?1:0));
+    const sorted = entries.sort(([,a],[,b]) => (sortDoneVal(a)?1:0)-(sortDoneVal(b)?1:0));
     sorted.forEach(([i, item]) => renderShopRow(container, i, item));
   }
 }
@@ -1808,8 +1823,22 @@ function cyclePriority(i) {
 
 // ── Shared ────────────────────────────────────────────────────────────────
 function toggleItem(i) {
-  data.lists[currentListIdx].items[i].done ^= true;
-  save(); renderItems();
+  const item = data.lists[currentListIdx].items[i];
+  item.done = !item.done;
+  save();
+
+  if (toggleTimers.has(item)) { clearTimeout(toggleTimers.get(item)); toggleTimers.delete(item); }
+  if (item.done) {
+    recentlyToggled.add(item);
+    toggleTimers.set(item, setTimeout(() => {
+      recentlyToggled.delete(item);
+      toggleTimers.delete(item);
+      if (data.lists[currentListIdx]?.items.includes(item)) renderItems();
+    }, 900));
+  } else {
+    recentlyToggled.delete(item);
+  }
+  renderItems();
 }
 
 function deleteItem(i) {
@@ -1969,10 +1998,10 @@ async function renderAdminUsers() {
         ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:4px;display:flex;align-items:center;gap:6px">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:1px solid #2f6fed;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600">📋 העתק</button></div>` : ''}
       </div>
       ${isAdmin ? '' : `
-        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer">
+        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 12px;height:32px;min-width:56px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
           ${u.active ? 'השהה' : 'הפעל'}
         </button>
-        <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:none;color:#e74c3c;font-size:18px;cursor:pointer">✕</button>
+        <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:#fdecea;color:#e74c3c;padding:0;width:32px;height:32px;border-radius:8px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">✕</button>
       `}`;
     container.appendChild(row);
   });
