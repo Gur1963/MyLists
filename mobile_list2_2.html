@@ -1888,10 +1888,10 @@ async function renderAdminUsers() {
         <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
       </div>
       ${isAdmin ? '' : `
-        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 12px;height:32px;min-width:64px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px">
-          ${u.active ? '⏸ השהה' : '▶ הפעל'}
+        <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 10px;height:28px;min-width:52px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+          ${u.active ? 'השהה' : 'הפעל'}
         </button>
-        <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:#fdecea;color:#e74c3c;padding:0;width:32px;height:32px;border-radius:8px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">✕</button>
+        <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:#fdecea;color:#e74c3c;padding:0;width:28px;height:28px;border-radius:8px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">✕</button>
       `}`;
     container.appendChild(row);
   });
