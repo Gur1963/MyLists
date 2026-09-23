@@ -567,7 +567,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4g5PzhJfyMXfXlpDtbaMkheESumDOWqw",
@@ -663,14 +663,15 @@ function showAppScreen() {
 
 let _loginInProgress = false;
 async function loginWithGoogle() {
-  // משתמשים ב-redirect ולא ב-popup: על נייד popup לרוב נחסם/נכשל בפעימה
-  // הראשונה, מה שגורם למסך הכניסה עם גוגל להיראות כאילו הוא מופיע פעמיים
   if (_loginInProgress) return;
   _loginInProgress = true;
   try {
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch(e) {
-    alert('שגיאת כניסה: ' + e.message);
+    if (e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user') {
+      alert('שגיאת כניסה: ' + e.message);
+    }
+  } finally {
     _loginInProgress = false;
   }
 }
