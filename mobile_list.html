@@ -952,27 +952,51 @@ async function openSendList(idx) {
   modal.querySelector('#send-cancel').onclick = close;
   modal.querySelectorAll('.send-user-row').forEach(btn => {
     btn.onclick = async () => {
-      const to = users[+btn.dataset.k].email;
+      const toUser = users[+btn.dataset.k];
       close();
-      await sendListTo(list, to);
+      await sendListTo(list, toUser);
     };
   });
 }
 
-async function sendListTo(list, toEmail) {
+async function sendListTo(list, toUser) {
+  const toEmail = toUser.email;
   const copy = JSON.parse(JSON.stringify(list));
   copy.items = (copy.items || []).map(it => ({ ...it, done: false }));
+  const fromName = currentUser.displayName || currentUser.email;
   try {
     await addDoc(INBOX_COL, {
       to: toEmail.toLowerCase(),
       fromEmail: currentUser.email,
-      fromName: currentUser.displayName || currentUser.email,
+      fromName,
       list: copy,
       sentAt: Date.now()
     });
     showInfoToast(`נשלח ל-${toEmail} ✓`);
   } catch(e) {
     alert('שגיאת שליחה: ' + e.message);
+    return;
+  }
+  if (toUser.ntfyTopic) notifyListSent(toUser.ntfyTopic, copy, fromName);
+}
+
+// התראת ntfy לערוץ הפרטי של המקבל (אותו ערוץ של התזכורות).
+// אם ההתראה נכשלה - הרשימה כבר נשלחה, והבאנר יופיע אצלו בכל מקרה
+async function notifyListSent(topic, list, fromName) {
+  try {
+    // פרסום בפורמט JSON לכתובת הראשית של ntfy - מאפשר עברית בכותרת בלי קידוד headers
+    await fetch('https://ntfy.sh/', {
+      method: 'POST',
+      body: JSON.stringify({
+        topic,
+        title: `קיבלת רשימה חדשה: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
+        message: `מאת ${fromName}. פתח את האפליקציה כדי לקבל או לדחות.`,
+        tags: ['incoming_envelope'],
+        click: location.origin + location.pathname
+      })
+    });
+  } catch(e) {
+    console.error('שגיאת התראת ntfy:', e);
   }
 }
 
