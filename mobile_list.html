@@ -215,6 +215,22 @@
     font-size: 14px; cursor: pointer; flex-shrink: 0;
   }
 
+  /* Inbox banner - רשימות שנשלחו אליי ממשתמש אחר */
+  .inbox-banner {
+    margin: 10px 12px 0; padding: 12px 14px; border-radius: 14px;
+    background: #eaf1fe; border: 1px solid #c9dbfb;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .inbox-banner-text { font-size: 14px; color: #223; line-height: 1.4; }
+  .inbox-banner-text b { color: #2f6fed; }
+  .inbox-banner-actions { display: flex; gap: 8px; }
+  .inbox-banner-actions button {
+    flex: 1; padding: 9px; border-radius: 10px; font-size: 14px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .inbox-accept { border: none; background: #2f6fed; color: #fff; }
+  .inbox-reject { border: 1px solid #ccd; background: #fff; color: #666; }
+
   /* Items list */
   .items-list { flex: 1; overflow-y: auto; padding: 10px 12px; }
 
@@ -337,6 +353,8 @@
                oninput="onHomeSearch(this.value)">
         <button class="search-clear-btn" id="home-search-clear" onclick="clearHomeSearch()" style="display:none">✕</button>
       </div>
+
+      <div id="inbox-banners"></div>
 
       <div class="lists-container" id="lists-container"></div>
 
@@ -566,7 +584,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -733,10 +751,13 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('type-stocks').style.display    = isAdminUser ? '' : 'none';
     document.getElementById('type-reminders').style.display = isAdminUser ? '' : 'none';
     showAppScreen();
+    loadInbox();
   } else {
     currentUser = null;
     DOC = null;
     isAdminUser = false;
+    inboxEntries = [];
+    renderInbox();
     showLoginScreen();
   }
 });
@@ -803,11 +824,13 @@ function renderHome() {
       <div style="display:flex;gap:6px;align-items:center">
         <button class="card-action-btn rename-btn" title="שנה שם">✎</button>
         <button class="card-action-btn duplicate-btn" title="שכפל">📋</button>
+        <button class="card-action-btn send-btn" title="שלח למשתמש">📨</button>
         <button class="card-action-btn delete-btn" style="color:#e74c3c" title="מחק">🗑</button>
       </div>`;
 
     card.querySelector('.rename-btn').addEventListener('click', e => { e.stopPropagation(); renameList(i); });
     card.querySelector('.duplicate-btn').addEventListener('click', e => { e.stopPropagation(); duplicateList(i); });
+    card.querySelector('.send-btn').addEventListener('click', e => { e.stopPropagation(); openSendList(i); });
     card.querySelector('.delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteList(i); });
     card.onclick = () => openList(i);
     container.appendChild(card);
@@ -875,6 +898,146 @@ function deleteList(idx) {
     updateArchiveBadge();
   }
 }
+
+// ── Send list to user ─────────────────────────────────────────────────────
+// שליחה לא כותבת ישירות לחשבון של המשתמש השני - נכתבת ל"תיבת דואר" משותפת
+// (inbox), והמקבל רואה באנר בבית ומחליט אם לקבל או לדחות
+const INBOX_COL = collection(db, "inbox");
+let inboxEntries = [];
+
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function showInfoToast(text) {
+  clearTimeout(_undoToastTimer);
+  const existing = document.getElementById('undo-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'undo-toast';
+  toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom, 0px));background:#323232;color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;font-family:inherit;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:88%;';
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  _undoToastTimer = setTimeout(() => toast.remove(), 3000);
+}
+
+async function openSendList(idx) {
+  const list = data.lists[idx];
+  const myEmail = currentUser.email.toLowerCase();
+  let users = [];
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    users = normalizeList(snap.exists() ? snap.data().allowed : [])
+      .filter(u => u.active && u.email.toLowerCase() !== myEmail);
+  } catch(e) {
+    alert('שגיאה בטעינת משתמשים: ' + e.message);
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  const rows = users.length
+    ? users.map((u, k) => `<button data-k="${k}" class="send-user-row" style="display:block;width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid #e3e8f0;border-radius:12px;background:#f7f9fc;font-size:15px;text-align:right;cursor:pointer;font-family:inherit;direction:ltr">${escHtml(u.email)}</button>`).join('')
+    : `<p style="color:#888;font-size:14px;margin-bottom:12px">אין משתמשים אחרים ברשימת המורשים</p>`;
+  modal.innerHTML = `
+    <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:80vh;overflow-y:auto">
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">📨 שליחת "${escHtml(list.name)}"</p>
+      <p style="font-size:12px;color:#999;margin-bottom:16px;text-align:center">הרשימה תישלח נקייה, בלי סימוני "בוצע"</p>
+      ${rows}
+      <button id="send-cancel" style="width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px">ביטול</button>
+    </div>`;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  modal.querySelector('#send-cancel').onclick = close;
+  modal.querySelectorAll('.send-user-row').forEach(btn => {
+    btn.onclick = async () => {
+      const to = users[+btn.dataset.k].email;
+      close();
+      await sendListTo(list, to);
+    };
+  });
+}
+
+async function sendListTo(list, toEmail) {
+  const copy = JSON.parse(JSON.stringify(list));
+  copy.items = (copy.items || []).map(it => ({ ...it, done: false }));
+  try {
+    await addDoc(INBOX_COL, {
+      to: toEmail.toLowerCase(),
+      fromEmail: currentUser.email,
+      fromName: currentUser.displayName || currentUser.email,
+      list: copy,
+      sentAt: Date.now()
+    });
+    showInfoToast(`נשלח ל-${toEmail} ✓`);
+  } catch(e) {
+    alert('שגיאת שליחה: ' + e.message);
+  }
+}
+
+async function loadInbox() {
+  if (!currentUser) return;
+  try {
+    const snap = await getDocs(query(INBOX_COL, where('to', '==', currentUser.email.toLowerCase())));
+    inboxEntries = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.sentAt - b.sentAt);
+  } catch(e) {
+    console.error('שגיאת טעינת inbox:', e);
+    inboxEntries = [];
+  }
+  renderInbox();
+}
+
+function renderInbox() {
+  const box = document.getElementById('inbox-banners');
+  if (!box) return;
+  box.innerHTML = '';
+  inboxEntries.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'inbox-banner';
+    el.innerHTML = `
+      <div class="inbox-banner-text">📨 קיבלת רשימה חדשה: <b>${escHtml(entry.list.emoji)} ${escHtml(entry.list.name)}</b><br>
+        <span style="font-size:12px;color:#667">מאת ${escHtml(entry.fromName)}</span></div>
+      <div class="inbox-banner-actions">
+        <button class="inbox-accept">קבל</button>
+        <button class="inbox-reject">דחה</button>
+      </div>`;
+    el.querySelector('.inbox-accept').onclick = () => acceptInbox(entry);
+    el.querySelector('.inbox-reject').onclick = () => rejectInbox(entry);
+    box.appendChild(el);
+  });
+}
+
+async function acceptInbox(entry) {
+  // קודם שומרים אצלי ורק אז מוחקים מה-inbox, כדי שהרשימה לא תלך לאיבוד בשגיאה
+  data.lists.push(entry.list);
+  inboxEntries = inboxEntries.filter(x => x.id !== entry.id);
+  renderHome(); renderInbox();
+  await save();
+  try { await deleteDoc(doc(db, "inbox", entry.id)); } catch(e) { console.error('שגיאת מחיקה מ-inbox:', e); }
+  showInfoToast(`"${entry.list.name}" נוספה לרשימות שלך ✓`);
+}
+
+function rejectInbox(entry) {
+  showConfirm(`לדחות את "${escHtml(entry.list.name)}"?`, async yes => {
+    if (!yes) return;
+    try {
+      await deleteDoc(doc(db, "inbox", entry.id));
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      return;
+    }
+    inboxEntries = inboxEntries.filter(x => x.id !== entry.id);
+    renderInbox();
+  });
+}
+
+// בדיקה מחדש כשחוזרים לאפליקציה (למשל אחרי שהייתה פתוחה ברקע)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadInbox();
+});
 
 // ── Archive ───────────────────────────────────────────────────────────────
 function purgeExpiredArchive() {
@@ -2123,7 +2286,7 @@ Object.assign(window, {
   loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic,
   onReminderOffsetChange, onItemSearch, clearItemSearch, onHomeSearch, clearHomeSearch,
-  openArchive
+  openArchive, openSendList
 });
 </script>
 </div><!-- /app-screen -->
