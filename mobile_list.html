@@ -2229,8 +2229,11 @@ function setNtfyTopic(email) {
   modal.querySelector('#nt-cancel').onclick = close;
   modal.querySelector('#nt-save').onclick = async () => {
     // מקבלים גם הדבקה של כתובת מלאה (https://ntfy.sh/xxx) ומשאירים רק את שם הערוץ
-    const topic = modal.querySelector('#ntfy-topic-input').value.trim().replace(/^(https?:\/\/)?ntfy\.sh\//i, '').replace(/\/+$/, '');
-    if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { alert('שם ערוץ לא תקין (אותיות באנגלית, ספרות, - ו-_ בלבד)'); return; }
+    // מנקים רווחים ותווי כיווניות נסתרים שנדבקים בהעתקה מהטלפון, ולוקחים רק את החלק אחרי ה-/ האחרון
+    const topic = modal.querySelector('#ntfy-topic-input').value
+      .replace(/[\s​-‏‪-‮⁦-⁩﻿]/g, '')
+      .replace(/\/+$/, '').split('/').pop();
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { alert(`שם ערוץ לא תקין (אותיות באנגלית, ספרות, - ו-_ בלבד):\n${topic}`); return; }
     try {
       const snap = await getDoc(CONFIG_DOC);
       const list = normalizeList(snap.exists() ? snap.data().allowed : []);
