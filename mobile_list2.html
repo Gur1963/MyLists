@@ -2229,7 +2229,7 @@ function setNtfyTopic(email) {
   modal.querySelector('#nt-cancel').onclick = close;
   modal.querySelector('#nt-save').onclick = async () => {
     // מקבלים גם הדבקה של כתובת מלאה (https://ntfy.sh/xxx) ומשאירים רק את שם הערוץ
-    const topic = modal.querySelector('#ntfy-topic-input').value.trim().replace(/^https?:\/\/ntfy\.sh\//i, '').replace(/\/+$/, '');
+    const topic = modal.querySelector('#ntfy-topic-input').value.trim().replace(/^(https?:\/\/)?ntfy\.sh\//i, '').replace(/\/+$/, '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { alert('שם ערוץ לא תקין (אותיות באנגלית, ספרות, - ו-_ בלבד)'); return; }
     try {
       const snap = await getDoc(CONFIG_DOC);
