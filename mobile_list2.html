@@ -991,6 +991,7 @@ async function notifyListSent(topic, list, fromName) {
         topic,
         title: `קיבלת רשימה חדשה: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
         message: `מאת ${fromName}. פתח את האפליקציה כדי לקבל או לדחות.`,
+        priority: 4,
         tags: ['incoming_envelope'],
         click: location.origin + location.pathname
       })
