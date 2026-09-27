@@ -1368,6 +1368,12 @@ function renderItems() {
     const sorted = entries.sort(([,a],[,b]) => {
       const ad = sortDoneVal(a), bd = sortDoneVal(b);
       if (ad !== bd) return ad ? 1 : -1;
+      // תאריך קרוב יותר למעלה; משימות בלי תאריך בסוף; באותו תאריך - לפי עדיפות
+      if ((a.date||'') !== (b.date||'')) {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return a.date.localeCompare(b.date);
+      }
       return PRI_ORDER.indexOf(a.priority||'none') - PRI_ORDER.indexOf(b.priority||'none');
     });
     sorted.forEach(([i, item]) => renderTaskCard(container, i, item));
