@@ -690,7 +690,7 @@ const I18N = {
     includeDone: 'לכלול פריטים שסומנו כ"נעשו"?',
     sendTitle: name => `📨 שליחת "${name}"`, sendHint: 'הרשימה תישלח נקייה, בלי סימוני "בוצע"',
     noOtherUsers: 'אין משתמשים אחרים ברשימת המורשים', sentTo: who => `נשלח ל-${who} ✓`,
-    ntfyTitle: name => `קיבלת רשימה חדשה: ${name}`, ntfyMsg: from => `מאת ${from}. פתח את האפליקציה כדי לקבל או לדחות.`,
+    ntfyTitle: 'רשימה חדשה', ntfyMsg: from => `מאת ${from}. פתח את האפליקציה כדי לקבל או לדחות.`,
     inboxReceived: '📨 קיבלת רשימה חדשה:', fromName: name => `מאת ${name}`, accept: 'קבל', reject: 'דחה',
     addedToLists: name => `"${name}" נוספה לרשימות שלך ✓`, confirmReject: name => `לדחות את "${name}"?`,
     changeName: 'שנה שם', addName: 'הוסף שם', statusActive: 'פעיל', statusSuspended: 'מושהה',
@@ -764,7 +764,7 @@ const I18N = {
     includeDone: 'Include items marked as done?',
     sendTitle: name => `📨 Send "${name}"`, sendHint: 'The list is sent clean, without "done" marks',
     noOtherUsers: 'There are no other approved users', sentTo: who => `Sent to ${who} ✓`,
-    ntfyTitle: name => `You got a new list: ${name}`, ntfyMsg: from => `From ${from}. Open the app to accept or decline.`,
+    ntfyTitle: 'New list', ntfyMsg: from => `From ${from}. Open the app to accept or decline.`,
     inboxReceived: '📨 You got a new list:', fromName: name => `From ${name}`, accept: 'Accept', reject: 'Decline',
     addedToLists: name => `"${name}" was added to your lists ✓`, confirmReject: name => `Decline "${name}"?`,
     changeName: 'Rename', addName: 'Add name', statusActive: 'Active', statusSuspended: 'Suspended',
@@ -1182,7 +1182,7 @@ async function sendListTo(list, toUser) {
 
 // התראת ntfy לערוץ הפרטי של המקבל (אותו ערוץ של התזכורות).
 // אם ההתראה נכשלה - הרשימה כבר נשלחה, והבאנר יופיע אצלו בכל מקרה.
-// ההתראה נכתבת בשפה של השולח - את השפה של המקבל אין לנו גישה לדעת.
+// את השפה שהמקבל בחר אין לנו גישה לדעת, לכן ההתראה נשלחת בשתי השפות
 async function notifyListSent(topic, list, fromName) {
   try {
     // פרסום בפורמט JSON לכתובת הראשית של ntfy - מאפשר עברית בכותרת בלי קידוד headers
@@ -1190,8 +1190,8 @@ async function notifyListSent(topic, list, fromName) {
       method: 'POST',
       body: JSON.stringify({
         topic,
-        title: t('ntfyTitle')(`${list.emoji || ''} ${list.name}`).replace(/\s+/g, ' '),
-        message: t('ntfyMsg')(fromName),
+        title: `${I18N.he.ntfyTitle} / ${I18N.en.ntfyTitle}: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
+        message: `${I18N.he.ntfyMsg(fromName)}\n${I18N.en.ntfyMsg(fromName)}`,
         priority: 4,
         tags: ['incoming_envelope'],
         click: location.origin + location.pathname
