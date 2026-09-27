@@ -133,7 +133,7 @@
     width: 100%; padding: 11px 13px;
     border: 1.5px solid #ddd; border-radius: 12px;
     font-size: 15px; font-family: inherit;
-    text-align: right; direction: rtl; outline: none; margin-bottom: 12px;
+    text-align: start; outline: none; margin-bottom: 12px;
   }
   .modal-input:focus { border-color: #4a90d9; }
   .modal-btn {
@@ -173,7 +173,7 @@
     flex: 1; padding: 9px 11px;
     border: 1.5px solid #ddd; border-radius: 10px;
     font-size: 14px; font-family: inherit;
-    text-align: right; direction: rtl; outline: none;
+    text-align: start; outline: none;
   }
   .add-input:focus { border-color: #4a90d9; }
 
@@ -198,7 +198,7 @@
     flex: 1; padding: 8px 10px;
     border: 1.5px solid #ddd; border-radius: 10px;
     font-size: 13px; font-family: inherit;
-    text-align: right; direction: rtl; outline: none; color: #555;
+    text-align: start; outline: none; color: #555;
   }
   .date-input:focus { border-color: #4a90d9; }
 
@@ -276,7 +276,7 @@
   .item-edit-input {
     flex: 1; border: none; border-bottom: 2px solid #4a90d9;
     font-size: 14px; font-family: inherit; background: transparent;
-    outline: none; text-align: right; direction: rtl; padding: 2px 0; color: #222;
+    outline: none; text-align: start; padding: 2px 0; color: #222;
   }
 
   .empty-msg {
@@ -288,7 +288,7 @@
   /* Template screen hint */
   .template-hint {
     background: #f9f0ff; padding: 9px 14px;
-    font-size: 12px; color: #8e44ad; text-align: right;
+    font-size: 12px; color: #8e44ad; text-align: start;
     border-bottom: 1px solid #edd6f8;
   }
 
@@ -319,12 +319,13 @@
 <!-- מסך כניסה -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:#f5f5f5;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:999">
   <div style="font-size:64px">📋</div>
-  <h1 style="font-size:24px;color:#333">הרשימות שלי</h1>
-  <p style="color:#888;font-size:14px">כנס כדי לראות את הרשימות שלך</p>
+  <h1 style="font-size:24px;color:#333" data-i18n="loginTitle">הרשימות שלי</h1>
+  <p style="color:#888;font-size:14px" data-i18n="loginSub">כנס כדי לראות את הרשימות שלך</p>
   <button onclick="loginWithGoogle()" style="display:flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:16px;cursor:pointer;box-shadow:0 2px 8px #0001">
     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22">
-    כניסה עם Google
+    <span data-i18n="loginBtn">כניסה עם Google</span>
   </button>
+  <button class="lang-btn" onclick="toggleLanguage()" style="border:1px solid #ddd;background:#fff;color:#555;font-size:13px;padding:6px 14px;border-radius:10px;cursor:pointer">EN</button>
 </div>
 
 <div id="app-screen" style="display:none;width:100%;height:100vh;flex-direction:column">
@@ -340,16 +341,19 @@
     <div class="screen active" id="screen-home">
       <div class="home-header">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <h1>הרשימות שלי 📋</h1>
-          <button onclick="logout()" style="border:none;background:none;color:#000;font-size:13px;cursor:pointer">יציאה</button>
+          <h1 data-i18n="homeTitle">הרשימות שלי 📋</h1>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="lang-btn" onclick="toggleLanguage()" style="border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;cursor:pointer">EN</button>
+            <button onclick="logout()" style="border:none;background:none;color:#000;font-size:13px;cursor:pointer" data-i18n="logoutBtn">יציאה</button>
+          </div>
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px">גרסה 1.0.1</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.1</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
-        <input class="add-input" id="home-search-input" type="search" placeholder="🔍 חיפוש רשימה..."
+        <input class="add-input" id="home-search-input" type="search" data-i18n-ph="homeSearchPh" placeholder="🔍 חיפוש רשימה..."
                oninput="onHomeSearch(this.value)">
         <button class="search-clear-btn" id="home-search-clear" onclick="clearHomeSearch()" style="display:none">✕</button>
       </div>
@@ -363,39 +367,39 @@
       <div class="modal-overlay" id="new-list-modal">
         <div class="modal-sheet">
           <div class="modal-handle"></div>
-          <h2>רשימה חדשה</h2>
+          <h2 data-i18n="newListTitle">רשימה חדשה</h2>
 
           <div class="type-selector">
             <div class="type-opt selected" id="type-shop" onclick="selectType('shop')">
               <span class="type-icon">🛒</span>
-              <span class="type-label">קניות</span>
+              <span class="type-label" data-i18n="typeShop">קניות</span>
             </div>
             <div class="type-opt" id="type-tasks" onclick="selectType('tasks')">
               <span class="type-icon">✅</span>
-              <span class="type-label">משימות</span>
+              <span class="type-label" data-i18n="typeTasks">משימות</span>
             </div>
             <div class="type-opt" id="type-links" onclick="selectType('links')">
               <span class="type-icon">🔗</span>
-              <span class="type-label">הפניות</span>
+              <span class="type-label" data-i18n="typeLinks">הפניות</span>
             </div>
             <div class="type-opt" id="type-stocks" onclick="selectType('stocks')">
               <span class="type-icon">📈</span>
-              <span class="type-label">מניות</span>
+              <span class="type-label" data-i18n="typeStocks">מניות</span>
             </div>
             <div class="type-opt" id="type-reminders" onclick="selectType('reminders')">
               <span class="type-icon">🔔</span>
-              <span class="type-label">תזכורות</span>
+              <span class="type-label" data-i18n="typeReminders">תזכורות</span>
             </div>
           </div>
 
           <div id="stock-mode-row" style="display:none;gap:8px;margin-bottom:4px;justify-content:center">
-            <div class="type-opt selected" id="smode-rec" onclick="selectStockMode('recommendations')" style="font-size:12px;padding:6px 10px">📊 המלצות אנליסטים</div>
-            <div class="type-opt"          id="smode-port" onclick="selectStockMode('portfolio')"      style="font-size:12px;padding:6px 10px">💼 תיק שלי</div>
+            <div class="type-opt selected" id="smode-rec" onclick="selectStockMode('recommendations')" style="font-size:12px;padding:6px 10px" data-i18n="stockModeRec">📊 המלצות אנליסטים</div>
+            <div class="type-opt"          id="smode-port" onclick="selectStockMode('portfolio')"      style="font-size:12px;padding:6px 10px" data-i18n="stockModePort">💼 תיק שלי</div>
           </div>
 
           <div class="emoji-row" id="emoji-row"></div>
-          <input class="modal-input" id="new-list-name" placeholder="שם הרשימה..." maxlength="30">
-          <button class="modal-btn" onclick="createList()">צור רשימה</button>
+          <input class="modal-input" id="new-list-name" data-i18n-ph="newListNamePh" placeholder="שם הרשימה..." maxlength="30">
+          <button class="modal-btn" onclick="createList()" data-i18n="createListBtn">צור רשימה</button>
         </div>
       </div>
     </div>
@@ -404,14 +408,14 @@
     <div class="screen" id="screen-admin">
       <div class="detail-header" style="background:linear-gradient(135deg,#2c3e50,#4a5568)">
         <button class="back-btn" onclick="goHome()">‹</button>
-        <div class="detail-title">⚙️ הגדרות</div>
+        <div class="detail-title" data-i18n="settingsTitle">⚙️ הגדרות</div>
       </div>
       <div style="padding:16px">
-        <h3 style="margin-bottom:12px;color:#333">משתמשים מורשים</h3>
+        <h3 style="margin-bottom:12px;color:#333" data-i18n="allowedUsersTitle">משתמשים מורשים</h3>
         <div id="admin-users-list"></div>
         <div style="display:flex;gap:8px;margin-top:16px">
-          <input id="new-user-input" type="email" placeholder="הוסף מייל..." style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px">
-          <button onclick="addAllowedUser()" style="padding:10px 16px;background:#4a90d9;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer">הוסף</button>
+          <input id="new-user-input" type="email" data-i18n-ph="addEmailPh" placeholder="הוסף מייל..." style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:14px">
+          <button onclick="addAllowedUser()" style="padding:10px 16px;background:#4a90d9;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer" data-i18n="addBtn">הוסף</button>
         </div>
       </div>
     </div>
@@ -420,9 +424,9 @@
     <div class="screen" id="screen-archive">
       <div class="detail-header" style="background:linear-gradient(135deg,#7f8c8d,#576574)">
         <button class="back-btn" onclick="goHome()">‹</button>
-        <div class="detail-title">🗑 ארכיון</div>
+        <div class="detail-title" data-i18n="archiveTitle">🗑 ארכיון</div>
       </div>
-      <p style="font-size:12px;color:#999;text-align:center;padding:10px 16px 0">רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות</p>
+      <p style="font-size:12px;color:#999;text-align:center;padding:10px 16px 0" data-i18n="archiveHint">רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות</p>
       <div class="lists-container" id="archive-list"></div>
     </div>
 
@@ -431,12 +435,12 @@
       <div class="detail-header" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">
         <button class="back-btn" onclick="goHome()">‹</button>
         <span class="detail-icon-big">⭐</span>
-        <span class="detail-title">רשימת בסיס</span>
+        <span class="detail-title" data-i18n="templateTitle">רשימת בסיס</span>
       </div>
-      <div class="template-hint">פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה</div>
+      <div class="template-hint" data-i18n="templateHint">פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה</div>
       <div class="add-bar-simple">
         <button class="add-btn" style="background:#8e44ad" onclick="addTemplateItem()">+</button>
-        <input class="add-input" id="new-template-input" placeholder="הוסף פריט קבוע..."
+        <input class="add-input" id="new-template-input" data-i18n-ph="addTemplatePh" placeholder="הוסף פריט קבוע..."
                onkeydown="if(event.key==='Enter') addTemplateItem()">
       </div>
       <div class="items-list" id="template-items-list"></div>
@@ -448,20 +452,20 @@
         <button class="back-btn" onclick="goHome()">‹</button>
         <span class="detail-icon-big" id="detail-icon"></span>
         <span class="detail-title" id="detail-title"></span>
-        <button class="back-btn" onclick="shareListWhatsapp()" title="שלח ב-WhatsApp" style="margin-right:auto;font-size:20px">📤</button>
+        <button class="back-btn" onclick="shareListWhatsapp()" data-i18n-title="shareWhatsappTitle" title="שלח ב-WhatsApp" style="margin-inline-start:auto;font-size:20px">📤</button>
       </div>
 
       <!-- add bar: shown/hidden by type -->
       <div class="add-bar-simple" id="add-bar-shop">
         <button class="add-btn" style="background:#4a90d9" onclick="addItem()">+</button>
-        <input class="add-input" id="new-item-input" placeholder="הוסף פריט..."
+        <input class="add-input" id="new-item-input" data-i18n-ph="addItemPh" placeholder="הוסף פריט..."
                onkeydown="if(event.key==='Enter') addItem()">
       </div>
 
       <div class="add-bar-task" id="add-bar-stocks" style="display:none">
         <div class="add-bar-row">
           <input class="add-input" id="new-stock-ticker" placeholder="AAPL..." style="text-transform:uppercase;flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-price').focus()">
-          <input class="add-input" id="new-stock-price"  placeholder="שער" type="number" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-date').focus()">
+          <input class="add-input" id="new-stock-price"  data-i18n-ph="pricePh" placeholder="שער" type="number" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-date').focus()">
         </div>
         <div class="add-bar-row">
           <input class="add-input" id="new-stock-date"   type="date" onkeydown="if(event.key==='Enter') document.getElementById('new-stock-analyst').focus()">
@@ -472,25 +476,25 @@
 
       <div class="add-bar-task" id="add-bar-links" style="display:none">
         <div class="add-bar-row">
-          <input class="add-input" id="new-link-name" placeholder="שם ההפניה..." onkeydown="if(event.key==='Enter') document.getElementById('new-link-url').focus()">
+          <input class="add-input" id="new-link-name" data-i18n-ph="linkNamePh" placeholder="שם ההפניה..." onkeydown="if(event.key==='Enter') document.getElementById('new-link-url').focus()">
         </div>
         <div class="add-bar-row">
-          <input class="add-input" id="new-link-url" placeholder="קישור (https://...)" type="url" onkeydown="if(event.key==='Enter') addLink()">
+          <input class="add-input" id="new-link-url" data-i18n-ph="linkUrlPh" placeholder="קישור (https://...)" type="url" onkeydown="if(event.key==='Enter') addLink()">
           <button class="add-btn" style="background:#e67e22" onclick="addLink()">+</button>
         </div>
       </div>
 
       <div class="add-bar-task" id="add-bar-task" style="display:none">
         <div class="add-bar-row">
-          <input class="add-input" id="new-task-input" placeholder="שם המשימה..."
+          <input class="add-input" id="new-task-input" data-i18n-ph="taskNamePh" placeholder="שם המשימה..."
                  onkeydown="if(event.key==='Enter') addTask()">
         </div>
         <div class="add-bar-row" style="align-items:center">
           <div class="pri-sel" id="pri-sel">
-            <button class="pri-btn sel" data-p="none"  style="background:#eee;color:#888"     onclick="setPri('none')">ללא</button>
-            <button class="pri-btn"     data-p="low"   style="background:#d4edda;color:#276036" onclick="setPri('low')">נמוכה</button>
-            <button class="pri-btn"     data-p="medium" style="background:#fff3cd;color:#856404" onclick="setPri('medium')">בינונית</button>
-            <button class="pri-btn"     data-p="high"  style="background:#f8d7da;color:#721c24" onclick="setPri('high')">גבוהה</button>
+            <button class="pri-btn sel" data-p="none"  style="background:#eee;color:#888"     onclick="setPri('none')" data-i18n="priNone">ללא</button>
+            <button class="pri-btn"     data-p="low"   style="background:#d4edda;color:#276036" onclick="setPri('low')" data-i18n="priLow">נמוכה</button>
+            <button class="pri-btn"     data-p="medium" style="background:#fff3cd;color:#856404" onclick="setPri('medium')" data-i18n="priMedium">בינונית</button>
+            <button class="pri-btn"     data-p="high"  style="background:#f8d7da;color:#721c24" onclick="setPri('high')" data-i18n="priHigh">גבוהה</button>
           </div>
           <input class="date-input" id="new-task-date" type="date" style="max-width:130px">
           <button class="add-btn" style="background:#27ae60;width:38px;flex-shrink:0" onclick="addTask()">+</button>
@@ -499,11 +503,11 @@
 
       <div class="add-bar-task" id="add-bar-reminders" style="display:none">
         <div class="add-bar-row">
-          <input class="add-input" id="new-reminder-text" placeholder="לדוגמה: תור לרופא עור" style="flex:1"
+          <input class="add-input" id="new-reminder-text" data-i18n-ph="reminderTextPh" placeholder="לדוגמה: תור לרופא עור" style="flex:1"
                  onkeydown="if(event.key==='Enter') document.getElementById('new-reminder-location').focus()">
         </div>
         <div class="add-bar-row">
-          <input class="add-input" id="new-reminder-location" placeholder="מיקום (אופציונלי)" style="flex:1"
+          <input class="add-input" id="new-reminder-location" data-i18n-ph="reminderLocationPh" placeholder="מיקום (אופציונלי)" style="flex:1"
                  onkeydown="if(event.key==='Enter') document.getElementById('new-reminder-date').focus()">
         </div>
         <div class="add-bar-row">
@@ -513,32 +517,17 @@
                  onkeydown="if(event.key==='Enter') addReminder()">
           <button class="add-btn" style="background:#c0392b;width:38px;flex-shrink:0" onclick="addReminder()">+</button>
         </div>
-        <div class="add-bar-row" style="flex-wrap:wrap;gap:4px 10px;font-size:12px;color:#666;padding:4px 2px">
-          <span style="width:100%;font-size:11px;color:#999">מתי להתריע (עד 3):</span>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="168" onchange="onReminderOffsetChange(this)">שבוע לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="72" onchange="onReminderOffsetChange(this)">3 ימים לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="24" checked onchange="onReminderOffsetChange(this)">יום לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="12" onchange="onReminderOffsetChange(this)">חצי יום לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="2" onchange="onReminderOffsetChange(this)">שעתיים לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="1" onchange="onReminderOffsetChange(this)">שעה לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.5" onchange="onReminderOffsetChange(this)">חצי שעה לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0.1667" onchange="onReminderOffsetChange(this)">10 דקות לפני</label>
-          <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="reminder-offset-cb" value="0" onchange="onReminderOffsetChange(this)">בדיוק בזמן הפגישה</label>
+        <div class="add-bar-row" id="reminder-offsets-row" style="flex-wrap:wrap;gap:4px 10px;font-size:12px;color:#666;padding:4px 2px">
+          <span style="width:100%;font-size:11px;color:#999" data-i18n="offsetsLabel">מתי להתריע (עד 3):</span>
         </div>
         <div class="add-bar-row" style="font-size:12px;color:#666;padding:4px 2px;align-items:center;gap:8px">
-          <span style="font-size:11px;color:#999">חזרתיות:</span>
-          <select id="new-reminder-repeat" style="flex:1;padding:6px;border-radius:8px;border:1px solid #ddd;font-size:13px">
-            <option value="none">חד פעמי</option>
-            <option value="daily">כל יום</option>
-            <option value="weekly">כל שבוע</option>
-            <option value="monthly">כל חודש</option>
-            <option value="yearly">כל שנה</option>
-          </select>
+          <span style="font-size:11px;color:#999" data-i18n="repeatLabel">חזרתיות:</span>
+          <select id="new-reminder-repeat" style="flex:1;padding:6px;border-radius:8px;border:1px solid #ddd;font-size:13px"></select>
         </div>
       </div>
 
       <div class="search-bar" id="item-search-bar">
-        <input class="add-input" id="item-search-input" type="search" placeholder="🔍 חיפוש פריט..."
+        <input class="add-input" id="item-search-input" type="search" data-i18n-ph="itemSearchPh" placeholder="🔍 חיפוש פריט..."
                oninput="onItemSearch(this.value)">
         <button class="search-clear-btn" id="item-search-clear" onclick="clearItemSearch()" style="display:none">✕</button>
       </div>
@@ -550,21 +539,21 @@
     <div class="modal-overlay" id="rename-modal" onclick="closeRenameModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-handle"></div>
-        <h2>שינוי שם רשימה</h2>
-        <input class="modal-input" id="rename-input" placeholder="שם חדש...">
-        <button class="modal-btn" id="rename-confirm-btn">שמור</button>
+        <h2 data-i18n="renameTitle">שינוי שם רשימה</h2>
+        <input class="modal-input" id="rename-input" data-i18n-ph="newNamePh" placeholder="שם חדש...">
+        <button class="modal-btn" id="rename-confirm-btn" data-i18n="saveBtn">שמור</button>
       </div>
     </div>
 
     <div class="bottom-nav">
       <div style="flex:1;display:flex;justify-content:center">
         <button class="nav-btn active" onclick="goHome()">
-          <span class="nav-icon">🏠</span>בית
+          <span class="nav-icon">🏠</span><span data-i18n="navHome">בית</span>
         </button>
       </div>
       <div style="flex:1;display:flex;justify-content:center">
         <button class="nav-btn" onclick="openArchive()">
-          <span class="nav-icon">🗑</span>ארכיון
+          <span class="nav-icon">🗑</span><span data-i18n="navArchive">ארכיון</span>
           <span class="nav-badge" id="archive-badge" style="display:none">0</span>
         </button>
       </div>
@@ -574,7 +563,7 @@
       </div>
       <div style="flex:1;display:flex;justify-content:center" id="admin-btn-wrap" style="display:none">
         <button class="nav-btn" onclick="openAdmin()" id="admin-nav-btn" style="display:none">
-          <span class="nav-icon">⚙️</span>הגדרות
+          <span class="nav-icon">⚙️</span><span data-i18n="navSettings">הגדרות</span>
         </button>
       </div>
     </div>
@@ -614,11 +603,12 @@ const FINNHUB_KEY    = 'd9itoahr01qvkt7e7t10d9itoahr01qvkt7e7t1g';
 let CLAUDE_KEY = '';
 const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
 
+// התווית של כל עדיפות מגיעה מהמילון (priNone/priLow/...) לפי השפה הנוכחית
 const PRI = {
-  none:   { label:'ללא',    bg:'#eeeeee', fg:'#888888' },
-  low:    { label:'נמוכה',  bg:'#d4edda', fg:'#276036' },
-  medium: { label:'בינונית',bg:'#fff3cd', fg:'#856404' },
-  high:   { label:'גבוהה',  bg:'#f8d7da', fg:'#721c24' },
+  none:   { key:'priNone',   bg:'#eeeeee', fg:'#888888' },
+  low:    { key:'priLow',    bg:'#d4edda', fg:'#276036' },
+  medium: { key:'priMedium', bg:'#fff3cd', fg:'#856404' },
+  high:   { key:'priHigh',   bg:'#f8d7da', fg:'#721c24' },
 };
 const PRI_ORDER = ['high','medium','low','none'];
 
@@ -634,12 +624,216 @@ let selectedEmoji  = EMOJIS_SHOP[0];
 let selectedType   = 'shop';
 let newTaskPri     = 'none';
 
+// ── שפה (עברית/אנגלית) - כמו ב-MyRems: נשמרת פר-משתמש ב-data.language, ברירת מחדל עברית.
+// בנוסף נשמרת גם במכשיר (localStorage) כדי שמסך הכניסה יוצג בשפה האחרונה שנבחרה,
+// עוד לפני שיודעים מי המשתמש.
+const LANG_STORAGE_KEY = 'mylists-lang';
+let deviceLang = null;
+try { deviceLang = localStorage.getItem(LANG_STORAGE_KEY); } catch(e) {}
+
+const I18N = {
+  he: {
+    dir: 'rtl', dateLocale: 'he-IL', langBtn: 'EN', docTitle: 'הרשימות שלי',
+    loginTitle: 'הרשימות שלי', loginSub: 'כנס כדי לראות את הרשימות שלך', loginBtn: 'כניסה עם Google',
+    noAccessTitle: 'אין גישה', noAccessMsg: email => `${email} אינו מורשה`, tryOtherAccount: 'נסה חשבון אחר',
+    homeTitle: 'הרשימות שלי 📋', logoutBtn: 'יציאה', version: 'גרסה',
+    homeSearchPh: '🔍 חיפוש רשימה...', itemSearchPh: '🔍 חיפוש פריט...',
+    listsCount: n => `${n} רשימות`, homeEmptyHint: 'לחץ + ליצירת רשימה',
+    noListsMatch: 'לא נמצאו רשימות התואמות לחיפוש', noItemsMatch: 'לא נמצאו פריטים התואמים לחיפוש',
+    listEmpty: 'ריקה', listEmptyMsg: 'הרשימה ריקה — הוסף פריט ראשון',
+    renameBtnTitle: 'שנה שם', duplicateBtnTitle: 'שכפל', sendBtnTitle: 'שלח למשתמש', deleteBtnTitle: 'מחק',
+    newListTitle: 'רשימה חדשה', newListNamePh: 'שם הרשימה...', createListBtn: 'צור רשימה',
+    typeShop: 'קניות', typeTasks: 'משימות', typeLinks: 'הפניות', typeStocks: 'מניות', typeReminders: 'תזכורות',
+    stockModeRec: '📊 המלצות אנליסטים', stockModePort: '💼 תיק שלי',
+    renameTitle: 'שינוי שם רשימה', newNamePh: 'שם חדש...', saveBtn: 'שמור', cancelBtn: 'ביטול',
+    yes: 'כן', no: 'לא', addBtn: 'הוסף',
+    copySuffix: ' (עותק)', confirmDeleteList: name => `למחוק את הרשימה "${name}"?`,
+    renamePrompt: 'שם חדש לרשימה:', attachTemplate: 'לצרף את רשימת הבסיס?',
+    navHome: 'בית', navArchive: 'ארכיון', navSettings: 'הגדרות',
+    settingsTitle: '⚙️ הגדרות', allowedUsersTitle: 'משתמשים מורשים', addEmailPh: 'הוסף מייל...',
+    archiveTitle: '🗑 ארכיון', archiveHint: 'רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות',
+    archiveEmpty: 'הארכיון ריק', itemsCount: n => `${n} פריטים`, deletesIn: d => `נמחק בעוד ${d} יום`,
+    restoreTitle: 'שחזר', purgeTitle: 'מחק לצמיתות',
+    confirmPurge: name => `למחוק את "${name}" לצמיתות? לא ניתן לשחזר.`,
+    templateTitle: 'רשימת בסיס', templateHint: 'פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה',
+    addTemplatePh: 'הוסף פריט קבוע...', templateEmpty: 'הוסף פריטים קבועים<br>שיופיעו בכל רשימת קניות חדשה',
+    shareWhatsappTitle: 'שלח ב-WhatsApp', addItemPh: 'הוסף פריט...',
+    pricePh: 'שער', analystPh: 'אנליסט', notePh: 'הערה (אופציונלי)',
+    linkNamePh: 'שם ההפניה...', linkUrlPh: 'קישור (https://...)', linkEditNamePh: 'שם', linkEditUrlPh: 'קישור',
+    taskNamePh: 'שם המשימה...',
+    priNone: 'ללא', priLow: 'נמוכה', priMedium: 'בינונית', priHigh: 'גבוהה',
+    editDateTitle: 'לחץ לעריכת תאריך', addDateTitle: 'הוסף תאריך', addDate: '+ תאריך',
+    searchWebTitle: 'חפש ברשת', notesTitle: 'הערות', notesPh: 'הערות...',
+    itemBought: 'הפריט נקנה', itemDone: 'הפריט סומן כבוצע', itemDeleted: 'הפריט נמחק', undo: '↩ בטל',
+    reminderTextPh: 'לדוגמה: תור לרופא עור', reminderLocationPh: 'מיקום (אופציונלי)',
+    offsetsLabel: 'מתי להתריע (עד 3):', repeatLabel: 'חזרתיות:',
+    maxOffsets: 'אפשר לבחור עד 3 זמני התראה לכל תזכורת',
+    offsets: { 168:'שבוע לפני', 72:'3 ימים לפני', 24:'יום לפני', 12:'חצי יום לפני', 2:'שעתיים לפני', 1:'שעה לפני', 0.5:'חצי שעה לפני', 0.1667:'10 דקות לפני', 0:'בדיוק בזמן הפגישה' },
+    offsetHours: h => `${h} שעות לפני`,
+    repeats: { none:'חד פעמי', daily:'כל יום', weekly:'כל שבוע', monthly:'כל חודש', yearly:'כל שנה' },
+    confirmEdit: text => `לערוך את "${text}"?`,
+    promptText: 'פרטי הפגישה:', promptLocation: 'מיקום (אופציונלי):',
+    promptDate: 'תאריך (YYYY-MM-DD):', promptTime: 'שעה (HH:MM):',
+    promptOffsets: 'מתי להתריע (עד 3, מספרים מופרדים בפסיק):', promptRepeat: 'חזרתיות:',
+    calcAverages: 'מחשב ממוצעים...', dailyAvg: 'ממוצע יומי', sinceRecAvg: 'ממוצע מאז המלצה',
+    buyPrice: 'שער קניה', recPrice: 'שער המלצה', sinceBuy: 'מאז קניה', sinceRec: 'מאז המלצה',
+    prevClose: 'סגירה קודמת', daily: 'יומי', current: 'נוכחי', notFound: 'לא נמצא', loading: 'טוען...',
+    shareBuy: 'קניה', shareRec: 'המלצה',
+    confirmUpdateStock: ticker => `עדכן ${ticker}?`, promptTicker: 'טיקר:', noteLabel: 'הערה', analystLabel: 'אנליסט',
+    analyzing: 'מנתח...', unknown: 'לא ידוע',
+    aiNewsHeader: 'כותרות חדשות מהתקופה:', aiToday: 'היום',
+    aiContextPortfolio: (tk, date, price, cur, pct) => `המניה ${tk} נקנתה בתאריך ${date} בשער $${price}. השער הנוכחי הוא ${cur} (${pct}% שינוי).`,
+    aiContextRec: (tk, analyst, date, price, cur, pct) => `המניה ${tk} הומלצה על ידי ${analyst} בתאריך ${date} בשער $${price}. השער הנוכחי הוא ${cur} (${pct}% שינוי).`,
+    aiDefaultAnalyst: 'אנליסט',
+    aiInstrPortfolio: `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז הקניה לפי החדשות, האם ההשקעה הצליחה, ומה כדאי לשים לב אליו.`,
+    aiInstrRec: `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`,
+    includeDone: 'לכלול פריטים שסומנו כ"נעשו"?',
+    sendTitle: name => `📨 שליחת "${name}"`, sendHint: 'הרשימה תישלח נקייה, בלי סימוני "בוצע"',
+    noOtherUsers: 'אין משתמשים אחרים ברשימת המורשים', sentTo: who => `נשלח ל-${who} ✓`,
+    ntfyTitle: name => `קיבלת רשימה חדשה: ${name}`, ntfyMsg: from => `מאת ${from}. פתח את האפליקציה כדי לקבל או לדחות.`,
+    inboxReceived: '📨 קיבלת רשימה חדשה:', fromName: name => `מאת ${name}`, accept: 'קבל', reject: 'דחה',
+    addedToLists: name => `"${name}" נוספה לרשימות שלך ✓`, confirmReject: name => `לדחות את "${name}"?`,
+    changeName: 'שנה שם', addName: 'הוסף שם', statusActive: 'פעיל', statusSuspended: 'מושהה',
+    suspendBtn: 'השהה', enableBtn: 'הפעל', copyBtn: 'העתק', setNtfyBtn: 'הגדר ערוץ ntfy', noUsers: 'אין משתמשים',
+    ntfyChannel: 'ערוץ ntfy',
+    ntfyHint: 'אם כבר רשומים לערוץ באפליקציית ntfy (למשל של התזכורות) - הדבק את השם שלו.<br>אחרת השאר את הערוץ החדש ורשום אליו.',
+    invalidTopic: topic => `שם ערוץ לא תקין (אותיות באנגלית, ספרות, - ו-_ בלבד):\n${topic}`,
+    userNotFound: 'המשתמש לא נמצא', namePrompt: email => `שם עבור ${email}\n(השאר ריק כדי להציג את המייל)`,
+    invalidEmail: 'מייל לא תקין', emailExists: 'מייל כבר קיים',
+    userAdded: topic => `המשתמש נוסף בהצלחה!\n\nנושא ה-ntfy הפרטי שנוצר עבורו:\n${topic}\n\nיש למסור לו את הנושא הזה כדי שירשם (Subscribe) אליו באפליקציית ntfy - כך ההתראות שלו יגיעו רק אליו.`,
+    copied: 'הועתק!', copyFailed: 'לא הצלחתי להעתיק אוטומטית. יש להעתיק ידנית:\n',
+    confirmRemoveUser: email => `למחוק את ${email}?`,
+    errSave: 'שגיאת שמירה: ', errLogin: 'שגיאת כניסה: ', errLoadUsers: 'שגיאה בטעינת משתמשים: ',
+    errSend: 'שגיאת שליחה: ', errGeneric: 'שגיאה: ',
+  },
+  en: {
+    dir: 'ltr', dateLocale: 'en-US', langBtn: 'עב', docTitle: 'My Lists',
+    loginTitle: 'My Lists', loginSub: 'Sign in to see your lists', loginBtn: 'Sign in with Google',
+    noAccessTitle: 'No access', noAccessMsg: email => `${email} is not authorized`, tryOtherAccount: 'Try another account',
+    homeTitle: 'My Lists 📋', logoutBtn: 'Exit', version: 'Version',
+    homeSearchPh: '🔍 Search lists...', itemSearchPh: '🔍 Search items...',
+    listsCount: n => `${n} lists`, homeEmptyHint: 'Tap + to create a list',
+    noListsMatch: 'No lists match your search', noItemsMatch: 'No items match your search',
+    listEmpty: 'Empty', listEmptyMsg: 'The list is empty — add the first item',
+    renameBtnTitle: 'Rename', duplicateBtnTitle: 'Duplicate', sendBtnTitle: 'Send to user', deleteBtnTitle: 'Delete',
+    newListTitle: 'New list', newListNamePh: 'List name...', createListBtn: 'Create list',
+    typeShop: 'Shopping', typeTasks: 'Tasks', typeLinks: 'Links', typeStocks: 'Stocks', typeReminders: 'Reminders',
+    stockModeRec: '📊 Analyst picks', stockModePort: '💼 My portfolio',
+    renameTitle: 'Rename list', newNamePh: 'New name...', saveBtn: 'Save', cancelBtn: 'Cancel',
+    yes: 'Yes', no: 'No', addBtn: 'Add',
+    copySuffix: ' (copy)', confirmDeleteList: name => `Delete the list "${name}"?`,
+    renamePrompt: 'New list name:', attachTemplate: 'Add the base list items?',
+    navHome: 'Home', navArchive: 'Archive', navSettings: 'Settings',
+    settingsTitle: '⚙️ Settings', allowedUsersTitle: 'Approved users', addEmailPh: 'Add email...',
+    archiveTitle: '🗑 Archive', archiveHint: 'Deleted lists are kept here for a month, then deleted permanently',
+    archiveEmpty: 'The archive is empty', itemsCount: n => `${n} items`, deletesIn: d => `Deleted in ${d} days`,
+    restoreTitle: 'Restore', purgeTitle: 'Delete permanently',
+    confirmPurge: name => `Delete "${name}" permanently? This can't be undone.`,
+    templateTitle: 'Base list', templateHint: 'These items are added automatically to every new shopping list',
+    addTemplatePh: 'Add a fixed item...', templateEmpty: 'Add fixed items<br>that appear in every new shopping list',
+    shareWhatsappTitle: 'Send via WhatsApp', addItemPh: 'Add item...',
+    pricePh: 'Price', analystPh: 'Analyst', notePh: 'Note (optional)',
+    linkNamePh: 'Link name...', linkUrlPh: 'URL (https://...)', linkEditNamePh: 'Name', linkEditUrlPh: 'URL',
+    taskNamePh: 'Task name...',
+    priNone: 'None', priLow: 'Low', priMedium: 'Medium', priHigh: 'High',
+    editDateTitle: 'Tap to edit date', addDateTitle: 'Add date', addDate: '+ Date',
+    searchWebTitle: 'Search the web', notesTitle: 'Notes', notesPh: 'Notes...',
+    itemBought: 'Item bought', itemDone: 'Item marked done', itemDeleted: 'Item deleted', undo: '↩ Undo',
+    reminderTextPh: 'e.g. Dermatologist appointment', reminderLocationPh: 'Location (optional)',
+    offsetsLabel: 'When to remind (up to 3):', repeatLabel: 'Repeat:',
+    maxOffsets: 'You can pick up to 3 reminder times per item',
+    offsets: { 168:'1 week before', 72:'3 days before', 24:'1 day before', 12:'12 hours before', 2:'2 hours before', 1:'1 hour before', 0.5:'30 minutes before', 0.1667:'10 minutes before', 0:'At the exact time' },
+    offsetHours: h => `${h} hours before`,
+    repeats: { none:'One-time', daily:'Every day', weekly:'Every week', monthly:'Every month', yearly:'Every year' },
+    confirmEdit: text => `Edit "${text}"?`,
+    promptText: 'Event details:', promptLocation: 'Location (optional):',
+    promptDate: 'Date (YYYY-MM-DD):', promptTime: 'Time (HH:MM):',
+    promptOffsets: 'When to remind (up to 3, comma-separated numbers):', promptRepeat: 'Repeat:',
+    calcAverages: 'Calculating averages...', dailyAvg: 'Daily avg', sinceRecAvg: 'Avg since pick',
+    buyPrice: 'Buy price', recPrice: 'Pick price', sinceBuy: 'Since buy', sinceRec: 'Since pick',
+    prevClose: 'Prev close', daily: 'day', current: 'Current', notFound: 'Not found', loading: 'Loading...',
+    shareBuy: 'Buy', shareRec: 'Pick',
+    confirmUpdateStock: ticker => `Update ${ticker}?`, promptTicker: 'Ticker:', noteLabel: 'Note', analystLabel: 'Analyst',
+    analyzing: 'Analyzing...', unknown: 'unknown',
+    aiNewsHeader: 'News headlines from the period:', aiToday: 'Today',
+    aiContextPortfolio: (tk, date, price, cur, pct) => `The stock ${tk} was bought on ${date} at $${price}. The current price is ${cur} (${pct}% change).`,
+    aiContextRec: (tk, analyst, date, price, cur, pct) => `The stock ${tk} was recommended by ${analyst} on ${date} at $${price}. The current price is ${cur} (${pct}% change).`,
+    aiDefaultAnalyst: 'an analyst',
+    aiInstrPortfolio: `Write an analysis in English in two parts:\n1. Short description (2 sentences): what the company does and what sector it operates in.\n2. Analysis (3-4 sentences): what happened since the purchase according to the news, whether the investment worked out, and what to watch for.`,
+    aiInstrRec: `Write an analysis in English in two parts:\n1. Short description (2 sentences): what the company does and what sector it operates in.\n2. Analysis (3-4 sentences): what happened since the recommendation according to the news, whether it was a good call, and what to watch for.`,
+    includeDone: 'Include items marked as done?',
+    sendTitle: name => `📨 Send "${name}"`, sendHint: 'The list is sent clean, without "done" marks',
+    noOtherUsers: 'There are no other approved users', sentTo: who => `Sent to ${who} ✓`,
+    ntfyTitle: name => `You got a new list: ${name}`, ntfyMsg: from => `From ${from}. Open the app to accept or decline.`,
+    inboxReceived: '📨 You got a new list:', fromName: name => `From ${name}`, accept: 'Accept', reject: 'Decline',
+    addedToLists: name => `"${name}" was added to your lists ✓`, confirmReject: name => `Decline "${name}"?`,
+    changeName: 'Rename', addName: 'Add name', statusActive: 'Active', statusSuspended: 'Suspended',
+    suspendBtn: 'Suspend', enableBtn: 'Enable', copyBtn: 'Copy', setNtfyBtn: 'Set ntfy channel', noUsers: 'No users',
+    ntfyChannel: 'ntfy channel',
+    ntfyHint: "If you're already subscribed to a channel in the ntfy app (e.g. the reminders one), paste its name.<br>Otherwise keep the new channel and subscribe to it.",
+    invalidTopic: topic => `Invalid channel name (English letters, digits, - and _ only):\n${topic}`,
+    userNotFound: 'User not found', namePrompt: email => `Name for ${email}\n(leave empty to show the email)`,
+    invalidEmail: 'Invalid email', emailExists: 'Email already exists',
+    userAdded: topic => `User added!\n\nTheir private ntfy topic:\n${topic}\n\nGive them this topic so they can subscribe to it in the ntfy app - that way their notifications reach only them.`,
+    copied: 'Copied!', copyFailed: "Couldn't copy automatically. Please copy manually:\n",
+    confirmRemoveUser: email => `Remove ${email}?`,
+    errSave: 'Save error: ', errLogin: 'Sign-in error: ', errLoadUsers: 'Error loading users: ',
+    errSend: 'Send error: ', errGeneric: 'Error: ',
+  },
+};
+function curLang() { return data.language || (deviceLang === 'en' ? 'en' : 'he'); }
+function t(key) { return I18N[curLang()][key]; }
+function priLabel(p) { return t(PRI[p || 'none'].key); }
+
+// מתרגם את כל הטקסטים הקבועים ב-HTML שמסומנים ב-data-i18n (טקסט),
+// data-i18n-ph (placeholder) ו-data-i18n-title (title), ומחליף כיוון עמוד
+function applyStaticI18n() {
+  const cfg = I18N[curLang()];
+  document.documentElement.lang = curLang();
+  document.documentElement.dir  = cfg.dir;
+  document.title = cfg.docTitle;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('.lang-btn').forEach(el => { el.textContent = cfg.langBtn; });
+  buildReminderOffsetCheckboxes();
+  buildRepeatOptions();
+}
+
+// מיישם את השפה על כל הממשק - הטקסטים הקבועים וגם מה שמוצג כרגע במסך הפעיל
+function applyI18n() {
+  applyStaticI18n();
+  if (!currentUser) return;
+  renderHome();
+  renderInbox();
+  const active = document.querySelector('.screen.active')?.id;
+  if (active === 'screen-detail' && data.lists[currentListIdx]) {
+    const list = data.lists[currentListIdx];
+    if (list.type === 'stocks') {
+      document.getElementById('new-stock-analyst').placeholder = list.stockMode === 'portfolio' ? t('notePh') : t('analystPh');
+    }
+    renderItems();
+  }
+  if (active === 'screen-archive')  renderArchive();
+  if (active === 'screen-template') renderTemplateItems();
+  if (active === 'screen-admin')    renderAdminUsers();
+}
+
+function toggleLanguage() {
+  const next = curLang() === 'en' ? 'he' : 'en';
+  deviceLang = next;
+  try { localStorage.setItem(LANG_STORAGE_KEY, next); } catch(e) {}
+  data.language = next;
+  if (currentUser) save();
+  applyI18n();
+}
+
 async function save() {
   if (!DOC) return;
   try {
     await setDoc(DOC, data);
   } catch(e) {
-    alert('שגיאת שמירה: ' + e.message);
+    alert(t('errSave') + e.message);
   }
 }
 
@@ -665,7 +859,13 @@ async function loadFromCloud() {
   } catch(e) {
     console.error("שגיאת טעינה:", e);
   }
+  // השפה השמורה בחשבון גוברת, ונשמרת גם במכשיר בשביל מסך הכניסה בפעם הבאה
+  if (data.language) {
+    deviceLang = data.language;
+    try { localStorage.setItem(LANG_STORAGE_KEY, data.language); } catch(e) {}
+  }
   updateArchiveBadge();
+  applyStaticI18n();
   renderHome();
 }
 
@@ -687,7 +887,7 @@ async function loginWithGoogle() {
     await signInWithPopup(auth, provider);
   } catch(e) {
     if (e.code !== 'auth/cancelled-popup-request' && e.code !== 'auth/popup-closed-by-user') {
-      alert('שגיאת כניסה: ' + e.message);
+      alert(t('errLogin') + e.message);
     }
   } finally {
     _loginInProgress = false;
@@ -729,9 +929,9 @@ onAuthStateChanged(auth, async user => {
       await signOut(auth);
       document.getElementById('login-screen').innerHTML = `
         <div style="font-size:64px">🚫</div>
-        <h2 style="color:#333">אין גישה</h2>
-        <p style="color:#888;font-size:14px">${user.email} אינו מורשה</p>
-        <button onclick="loginWithGoogle()" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer">נסה חשבון אחר</button>`;
+        <h2 style="color:#333">${t('noAccessTitle')}</h2>
+        <p style="color:#888;font-size:14px">${t('noAccessMsg')(escHtml(user.email))}</p>
+        <button onclick="loginWithGoogle()" style="margin-top:16px;padding:10px 20px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer">${t('tryOtherAccount')}</button>`;
       document.getElementById('login-screen').style.display = 'flex';
       return;
     }
@@ -782,7 +982,7 @@ function renderHome() {
   const container = document.getElementById('lists-container');
   const subtitle  = document.getElementById('home-subtitle');
   const n = data.lists.length;
-  subtitle.textContent = n ? `${n} רשימות` : 'לחץ + ליצירת רשימה';
+  subtitle.textContent = n ? t('listsCount')(n) : t('homeEmptyHint');
 
   container.innerHTML = '';
 
@@ -793,7 +993,7 @@ function renderHome() {
   if (homeFilter && !entries.length) {
     container.innerHTML = `<div class="empty-msg">
       <span class="big">🔍</span>
-      לא נמצאו רשימות התואמות לחיפוש
+      ${t('noListsMatch')}
     </div>`;
     return;
   }
@@ -808,7 +1008,7 @@ function renderHome() {
     const isStocks  = list.type === 'stocks';
     const isReminders = list.type === 'reminders';
     const typeColor = isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : isReminders ? '#c0392b' : '#4a90d9';
-    const typeLabel = isTask ? '✅ משימות' : isLinks ? '🔗 הפניות' : isStocks ? '📈 מניות' : isReminders ? '🔔 תזכורות' : '🛒 קניות';
+    const typeLabel = isTask ? '✅ ' + t('typeTasks') : isLinks ? '🔗 ' + t('typeLinks') : isStocks ? '📈 ' + t('typeStocks') : isReminders ? '🔔 ' + t('typeReminders') : '🛒 ' + t('typeShop');
 
     const card = document.createElement('div');
     card.className = 'list-card';
@@ -818,14 +1018,14 @@ function renderHome() {
         <div class="list-name">${list.name}</div>
         <div class="list-meta">
           <span class="type-badge" style="background:${typeColor}18;color:${typeColor}">${typeLabel}</span>
-          <span>${total ? `${done}/${total}` : 'ריקה'}</span>
+          <span>${total ? `${done}/${total}` : t('listEmpty')}</span>
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="card-action-btn rename-btn" title="שנה שם">✎</button>
-        <button class="card-action-btn duplicate-btn" title="שכפל">📋</button>
-        <button class="card-action-btn send-btn" title="שלח למשתמש">📨</button>
-        <button class="card-action-btn delete-btn" style="color:#e74c3c" title="מחק">🗑</button>
+        <button class="card-action-btn rename-btn" title="${t('renameBtnTitle')}">✎</button>
+        <button class="card-action-btn duplicate-btn" title="${t('duplicateBtnTitle')}">📋</button>
+        <button class="card-action-btn send-btn" title="${t('sendBtnTitle')}">📨</button>
+        <button class="card-action-btn delete-btn" style="color:#e74c3c" title="${t('deleteBtnTitle')}">🗑</button>
       </div>`;
 
     card.querySelector('.rename-btn').addEventListener('click', e => { e.stopPropagation(); renameList(i); });
@@ -857,8 +1057,8 @@ function showConfirm(text, callback) {
     <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 40px;text-align:center">
       <p style="font-size:16px;margin-bottom:24px;color:#222;font-family:inherit">${text}</p>
       <div style="display:flex;gap:12px">
-        <button id="cm-no"  style="flex:1;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit">לא</button>
-        <button id="cm-yes" style="flex:1;padding:13px;border:none;border-radius:12px;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">כן</button>
+        <button id="cm-no"  style="flex:1;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit">${t('no')}</button>
+        <button id="cm-yes" style="flex:1;padding:13px;border:none;border-radius:12px;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">${t('yes')}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -873,7 +1073,7 @@ function closeRenameModal() {
 
 function duplicateList(idx) {
   const input = document.getElementById('rename-input');
-  input.value = data.lists[idx].name + ' (עותק)';
+  input.value = data.lists[idx].name + t('copySuffix');
   document.getElementById('rename-modal').classList.add('open');
   setTimeout(() => { input.focus(); input.select(); }, 100);
   document.getElementById('rename-confirm-btn').onclick = () => {
@@ -891,7 +1091,7 @@ function duplicateList(idx) {
 }
 
 function deleteList(idx) {
-  if (confirm(`למחוק את הרשימה "${data.lists[idx].name}"?`)) {
+  if (confirm(t('confirmDeleteList')(data.lists[idx].name))) {
     const [removed] = data.lists.splice(idx, 1);
     data.archive.unshift({ list: removed, deletedAt: Date.now() });
     save(); renderHome();
@@ -930,21 +1130,21 @@ async function openSendList(idx) {
     users = normalizeList(snap.exists() ? snap.data().allowed : [])
       .filter(u => u.active && u.email.toLowerCase() !== myEmail);
   } catch(e) {
-    alert('שגיאה בטעינת משתמשים: ' + e.message);
+    alert(t('errLoadUsers') + e.message);
     return;
   }
 
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
   const rows = users.length
-    ? users.map((u, k) => `<button data-k="${k}" class="send-user-row" style="display:block;width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid #e3e8f0;border-radius:12px;background:#f7f9fc;font-size:15px;text-align:right;cursor:pointer;font-family:inherit">${u.name ? `<div style="font-weight:600;color:#222">${escHtml(u.name)}</div><div style="font-size:11px;color:#999;direction:ltr;text-align:right">${escHtml(u.email)}</div>` : `<div style="direction:ltr;text-align:right">${escHtml(u.email)}</div>`}</button>`).join('')
-    : `<p style="color:#888;font-size:14px;margin-bottom:12px">אין משתמשים אחרים ברשימת המורשים</p>`;
+    ? users.map((u, k) => `<button data-k="${k}" class="send-user-row" style="display:block;width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid #e3e8f0;border-radius:12px;background:#f7f9fc;font-size:15px;text-align:start;cursor:pointer;font-family:inherit">${u.name ? `<div style="font-weight:600;color:#222">${escHtml(u.name)}</div><div style="font-size:11px;color:#999"><bdi>${escHtml(u.email)}</bdi></div>` : `<div><bdi>${escHtml(u.email)}</bdi></div>`}</button>`).join('')
+    : `<p style="color:#888;font-size:14px;margin-bottom:12px">${t('noOtherUsers')}</p>`;
   modal.innerHTML = `
     <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:80vh;overflow-y:auto">
-      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">📨 שליחת "${escHtml(list.name)}"</p>
-      <p style="font-size:12px;color:#999;margin-bottom:16px;text-align:center">הרשימה תישלח נקייה, בלי סימוני "בוצע"</p>
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">${t('sendTitle')(escHtml(list.name))}</p>
+      <p style="font-size:12px;color:#999;margin-bottom:16px;text-align:center">${t('sendHint')}</p>
       ${rows}
-      <button id="send-cancel" style="width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px">ביטול</button>
+      <button id="send-cancel" style="width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px">${t('cancelBtn')}</button>
     </div>`;
   document.body.appendChild(modal);
   const close = () => modal.remove();
@@ -972,16 +1172,17 @@ async function sendListTo(list, toUser) {
       list: copy,
       sentAt: Date.now()
     });
-    showInfoToast(`נשלח ל-${toUser.name || toEmail} ✓`);
+    showInfoToast(t('sentTo')(toUser.name || toEmail));
   } catch(e) {
-    alert('שגיאת שליחה: ' + e.message);
+    alert(t('errSend') + e.message);
     return;
   }
   if (toUser.ntfyTopic) notifyListSent(toUser.ntfyTopic, copy, fromName);
 }
 
 // התראת ntfy לערוץ הפרטי של המקבל (אותו ערוץ של התזכורות).
-// אם ההתראה נכשלה - הרשימה כבר נשלחה, והבאנר יופיע אצלו בכל מקרה
+// אם ההתראה נכשלה - הרשימה כבר נשלחה, והבאנר יופיע אצלו בכל מקרה.
+// ההתראה נכתבת בשפה של השולח - את השפה של המקבל אין לנו גישה לדעת.
 async function notifyListSent(topic, list, fromName) {
   try {
     // פרסום בפורמט JSON לכתובת הראשית של ntfy - מאפשר עברית בכותרת בלי קידוד headers
@@ -989,8 +1190,8 @@ async function notifyListSent(topic, list, fromName) {
       method: 'POST',
       body: JSON.stringify({
         topic,
-        title: `קיבלת רשימה חדשה: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
-        message: `מאת ${fromName}. פתח את האפליקציה כדי לקבל או לדחות.`,
+        title: t('ntfyTitle')(`${list.emoji || ''} ${list.name}`).replace(/\s+/g, ' '),
+        message: t('ntfyMsg')(fromName),
         priority: 4,
         tags: ['incoming_envelope'],
         click: location.origin + location.pathname
@@ -1023,11 +1224,11 @@ function renderInbox() {
     const el = document.createElement('div');
     el.className = 'inbox-banner';
     el.innerHTML = `
-      <div class="inbox-banner-text">📨 קיבלת רשימה חדשה: <b>${escHtml(entry.list.emoji)} ${escHtml(entry.list.name)}</b><br>
-        <span style="font-size:12px;color:#667">מאת ${escHtml(entry.fromName)}</span></div>
+      <div class="inbox-banner-text">${t('inboxReceived')} <b>${escHtml(entry.list.emoji)} ${escHtml(entry.list.name)}</b><br>
+        <span style="font-size:12px;color:#667">${t('fromName')(escHtml(entry.fromName))}</span></div>
       <div class="inbox-banner-actions">
-        <button class="inbox-accept">קבל</button>
-        <button class="inbox-reject">דחה</button>
+        <button class="inbox-accept">${t('accept')}</button>
+        <button class="inbox-reject">${t('reject')}</button>
       </div>`;
     el.querySelector('.inbox-accept').onclick = () => acceptInbox(entry);
     el.querySelector('.inbox-reject').onclick = () => rejectInbox(entry);
@@ -1042,16 +1243,16 @@ async function acceptInbox(entry) {
   renderHome(); renderInbox();
   await save();
   try { await deleteDoc(doc(db, "inbox", entry.id)); } catch(e) { console.error('שגיאת מחיקה מ-inbox:', e); }
-  showInfoToast(`"${entry.list.name}" נוספה לרשימות שלך ✓`);
+  showInfoToast(t('addedToLists')(entry.list.name));
 }
 
 function rejectInbox(entry) {
-  showConfirm(`לדחות את "${escHtml(entry.list.name)}"?`, async yes => {
+  showConfirm(t('confirmReject')(escHtml(entry.list.name)), async yes => {
     if (!yes) return;
     try {
       await deleteDoc(doc(db, "inbox", entry.id));
     } catch(e) {
-      alert('שגיאה: ' + e.message);
+      alert(t('errGeneric') + e.message);
       return;
     }
     inboxEntries = inboxEntries.filter(x => x.id !== entry.id);
@@ -1092,7 +1293,7 @@ function renderArchive() {
   if (!data.archive.length) {
     container.innerHTML = `<div class="empty-msg">
       <span class="big">🗑</span>
-      הארכיון ריק
+      ${t('archiveEmpty')}
     </div>`;
     return;
   }
@@ -1109,13 +1310,13 @@ function renderArchive() {
       <div class="list-info">
         <div class="list-name">${list.name}</div>
         <div class="list-meta" style="flex-wrap:wrap">
-          <span>${list.items.length} פריטים</span>
-          <span>נמחק בעוד ${daysLeft} יום</span>
+          <span>${t('itemsCount')(list.items.length)}</span>
+          <span>${t('deletesIn')(daysLeft)}</span>
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="card-action-btn restore-btn" title="שחזר">↩️</button>
-        <button class="card-action-btn purge-btn" style="color:#e74c3c" title="מחק לצמיתות">🗑</button>
+        <button class="card-action-btn restore-btn" title="${t('restoreTitle')}">↩️</button>
+        <button class="card-action-btn purge-btn" style="color:#e74c3c" title="${t('purgeTitle')}">🗑</button>
       </div>`;
 
     card.querySelector('.restore-btn').addEventListener('click', () => restoreArchivedList(i));
@@ -1133,7 +1334,7 @@ function restoreArchivedList(i) {
 
 function purgeArchivedList(i) {
   const list = data.archive[i].list;
-  showConfirm(`למחוק את "${list.name}" לצמיתות? לא ניתן לשחזר.`, () => {
+  showConfirm(t('confirmPurge')(list.name), () => {
     data.archive.splice(i, 1);
     save(); renderArchive(); updateArchiveBadge();
   });
@@ -1144,7 +1345,7 @@ function showListMenu(idx, pos) {
   document.getElementById('list-menu-name').textContent = data.lists[idx].name;
   document.getElementById('list-menu-rename').onclick = () => {
     closeListMenu();
-    const newName = prompt('שם חדש לרשימה:', data.lists[idx].name);
+    const newName = prompt(t('renamePrompt'), data.lists[idx].name);
     if (newName && newName.trim()) {
       data.lists[idx].name = newName.trim();
       save(); renderHome();
@@ -1152,7 +1353,7 @@ function showListMenu(idx, pos) {
   };
   document.getElementById('list-menu-delete').onclick = () => {
     closeListMenu();
-    if (confirm(`למחוק את הרשימה "${data.lists[idx].name}"?`)) {
+    if (confirm(t('confirmDeleteList')(data.lists[idx].name))) {
       data.lists.splice(idx, 1);
       save(); renderHome();
     }
@@ -1237,7 +1438,7 @@ function createList() {
     openList(data.lists.length - 1);
   };
   if (selectedType === 'shop' && data.template.length > 0) {
-    showConfirm('לצרף את רשימת הבסיס?', finishCreate);
+    showConfirm(t('attachTemplate'), finishCreate);
   } else {
     finishCreate(false);
   }
@@ -1276,7 +1477,7 @@ function openList(idx) {
     document.getElementById('new-stock-date').value   = '';
     document.getElementById('new-stock-analyst').value = '';
     const isPortfolio = list.stockMode === 'portfolio';
-    document.getElementById('new-stock-analyst').placeholder = isPortfolio ? 'הערה (אופציונלי)' : 'אנליסט';
+    document.getElementById('new-stock-analyst').placeholder = isPortfolio ? t('notePh') : t('analystPh');
   }
   else if (isReminders) {
     document.getElementById('new-reminder-text').value = '';
@@ -1349,7 +1550,7 @@ function renderItems() {
   if (!list.items.length) {
     container.innerHTML = `<div class="empty-msg">
       <span class="big">${list.emoji}</span>
-      הרשימה ריקה — הוסף פריט ראשון
+      ${t('listEmptyMsg')}
     </div>`;
     return;
   }
@@ -1359,7 +1560,7 @@ function renderItems() {
   if (!entries.length) {
     container.innerHTML = `<div class="empty-msg">
       <span class="big">🔍</span>
-      לא נמצאו פריטים התואמים לחיפוש
+      ${t('noItemsMatch')}
     </div>`;
     return;
   }
@@ -1382,7 +1583,7 @@ function renderItems() {
     const summaryEl = document.createElement('div');
     summaryEl.id = 'stock-summary';
     summaryEl.style = 'text-align:center;padding:6px 0 10px;font-size:12px;color:#aaa';
-    summaryEl.textContent = 'מחשב ממוצעים...';
+    summaryEl.textContent = t('calcAverages');
     container.appendChild(summaryEl);
     entries.forEach(([i, item]) => renderStockRow(container, i, item));
   } else if (list.type === 'links') {
@@ -1404,7 +1605,7 @@ function renderItems() {
 function makeSearchBtn(query) {
   const btn = document.createElement('button');
   btn.className = 'card-action-btn';
-  btn.title = 'חפש ברשת';
+  btn.title = t('searchWebTitle');
   btn.textContent = '🔍';
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1417,7 +1618,7 @@ function makeNotesPanel(i, item) {
   const hasNote = !!item.notes;
   const noteBtn = document.createElement('button');
   noteBtn.className = 'card-action-btn';
-  noteBtn.title = 'הערות';
+  noteBtn.title = t('notesTitle');
   noteBtn.style.position = 'relative';
   noteBtn.innerHTML = `📝${hasNote ? '<span style="position:absolute;top:4px;right:4px;width:7px;height:7px;background:#1a5276;border-radius:50%;display:block"></span>' : ''}`;
 
@@ -1425,7 +1626,7 @@ function makeNotesPanel(i, item) {
   panel.style.cssText = `display:none;padding:6px 8px 2px;border-top:1px solid #f0f0f0;margin-top:4px`;
   const ta = document.createElement('textarea');
   ta.value = item.notes || '';
-  ta.placeholder = 'הערות...';
+  ta.placeholder = t('notesPh');
   ta.style.cssText = 'width:100%;border:none;background:transparent;font-size:12px;color:#555;resize:none;outline:none;font-family:inherit;min-height:48px';
   ta.addEventListener('input', () => {
     item.notes = ta.value;
@@ -1476,12 +1677,12 @@ function renderTaskCard(container, i, item) {
     const d = new Date(item.date + 'T00:00:00');
     const today = new Date(); today.setHours(0,0,0,0);
     const overdue = !item.done && d < today;
-    const label = d.toLocaleDateString('he-IL', {day:'numeric',month:'short',year:'numeric'});
-    dateHtml = `<span class="task-date ${overdue?'overdue':''}" title="לחץ לעריכת תאריך"
+    const label = d.toLocaleDateString(t('dateLocale'), {day:'numeric',month:'short',year:'numeric'});
+    dateHtml = `<span class="task-date ${overdue?'overdue':''}" title="${t('editDateTitle')}"
       onclick="editDate(${i}, this)">${overdue?'⚠️ ':' 📅 '}${label}</span>`;
   } else {
-    dateHtml = `<span class="task-date" style="color:#ccc;cursor:pointer" title="הוסף תאריך"
-      onclick="editDate(${i}, this)">+ תאריך</span>`;
+    dateHtml = `<span class="task-date" style="color:#ccc;cursor:pointer" title="${t('addDateTitle')}"
+      onclick="editDate(${i}, this)">${t('addDate')}</span>`;
   }
 
   const { noteBtn, panel } = makeNotesPanel(i, item);
@@ -1500,7 +1701,7 @@ function renderTaskCard(container, i, item) {
         <div class="task-footer">
           ${dateHtml}
           <span class="pri-tag" style="background:${pri.bg};color:${pri.fg}"
-                onclick="cyclePriority(${i})">${pri.label||'ללא עדיפות'}</span>
+                onclick="cyclePriority(${i})">${priLabel(item.priority)}</span>
         </div>
         <span id="note-panel-task-${i}"></span>
       </div>
@@ -1521,7 +1722,7 @@ async function fetchPrice(ticker) {
 
 // עוזר לחישוב תאריך יום המסחר הקודם (מדלג על שבת-ראשון, שהם סופ"ש בבורסה האמריקאית)
 function fmtTradeDate(d) {
-  return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  return d.toLocaleDateString(t('dateLocale'), { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 }
 function prevTradingDay(d) {
   const pd = new Date(d);
@@ -1554,9 +1755,9 @@ function updateSummaryBar() {
   };
   const dayAvg = avg(dayPcts);
   const recAvg = avg(recPcts);
-  const parts = [fmt(dayAvg, 'ממוצע יומי'), fmt(recAvg, 'ממוצע מאז המלצה')].filter(Boolean);
-  const now = new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  el.innerHTML = (parts.join(' &nbsp;|&nbsp; ') || '') + `<span style="color:#4a90d9;font-size:11px;font-weight:600;margin-right:8px">🕐 ${now}</span>`;
+  const parts = [fmt(dayAvg, t('dailyAvg')), fmt(recAvg, t('sinceRecAvg'))].filter(Boolean);
+  const now = new Date().toLocaleTimeString(t('dateLocale'), {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.innerHTML = (parts.join(' &nbsp;|&nbsp; ') || '') + `<span style="color:#4a90d9;font-size:11px;font-weight:600;margin-inline-start:8px">🕐 ${now}</span>`;
 }
 
 const stockOpenCache = {};
@@ -1570,8 +1771,8 @@ function updateStockEl(i, item, quote) {
   if (!el) return;
   const list = data.lists[currentListIdx];
   const isPortfolio = list && list.stockMode === 'portfolio';
-  const recLabel = isPortfolio ? 'שער קניה' : 'שער המלצה';
-  const sinceLabel = isPortfolio ? 'קניה' : 'המלצה';
+  const recLabel = isPortfolio ? t('buyPrice') : t('recPrice');
+  const sinceLabel = isPortfolio ? t('sinceBuy') : t('sinceRec');
   if (current) {
     const pct      = recPrice ? ((current - recPrice) / recPrice * 100) : null;
     const color    = pct !== null && pct >= 0 ? '#27ae60' : '#e74c3c';
@@ -1585,17 +1786,17 @@ function updateStockEl(i, item, quote) {
     // מציגים גם את שער הסגירה הקודם במפורש (עם התאריך שלו), כדי שיהיה ברור מול מה
     // מחושב האחוז ה"יומי" - זה שער אחר לגמרי משער ההמלצה, גם אם הנוכחי זהה להמלצה.
     const prevCloseBadge = open
-      ? ` &nbsp;·&nbsp; סגירה קודמת${prevDateLabel}: $${open.toFixed(2)}`
+      ? ` &nbsp;·&nbsp; ${t('prevClose')}${prevDateLabel}: $${open.toFixed(2)}`
       : '';
     const dayBadge = dayPct !== null
-      ? ` <span style="color:${dayColor};font-weight:700">(יומי ${daySign}${dayPct.toFixed(1)}%)</span>`
+      ? ` <span style="color:${dayColor};font-weight:700">(${t('daily')} ${daySign}${dayPct.toFixed(1)}%)</span>`
       : '';
     const recBadge = pct !== null
-      ? ` &nbsp;·&nbsp; מאז ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
+      ? ` &nbsp;·&nbsp; ${sinceLabel}: <span style="color:${color}">${sign}${pct.toFixed(1)}%</span>`
       : '';
-    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)}${prevCloseBadge} &nbsp;·&nbsp; נוכחי${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
+    el.innerHTML = `${recLabel}: $${recPrice.toFixed(2)}${prevCloseBadge} &nbsp;·&nbsp; ${t('current')}${curDateLabel}: <span style="font-weight:700">$${current.toFixed(2)}</span>${dayBadge}${recBadge}`;
   } else {
-    el.textContent = 'לא נמצא';
+    el.textContent = t('notFound');
   }
   updateSummaryBar();
 }
@@ -1621,7 +1822,6 @@ function renderStockRow(container, i, item) {
   const analyst   = item.analyst || '';
   const list      = data.lists[currentListIdx];
   const isPortfolio = list.stockMode === 'portfolio';
-  const dateLabel = isPortfolio ? 'קניה' : 'המלצה';
   const analystLabel = isPortfolio ? '' : analyst;
   const row = document.createElement('div');
   row.style = 'background:#fff;border-radius:12px;margin-bottom:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)';
@@ -1637,7 +1837,7 @@ function renderStockRow(container, i, item) {
       <span id="note-btn-stock-${i}"></span>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>
-    <div id="sp-${i}" style="font-size:12px;color:#555;margin-top:6px;line-height:1.5">טוען...</div>
+    <div id="sp-${i}" style="font-size:12px;color:#555;margin-top:6px;line-height:1.5">${t('loading')}</div>
     <div id="ar-${i}" style="display:none;margin-top:8px;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;color:#333;line-height:1.6;position:relative"></div>
     <span id="note-panel-stock-${i}"></span>`;
   container.appendChild(row);
@@ -1660,9 +1860,9 @@ async function aiAnalyze(i) {
   btn.textContent        = '⏳';
   btn.disabled           = true;
   resultEl.style.display = 'block';
-  resultEl.textContent   = 'מנתח...';
+  resultEl.textContent   = t('analyzing');
 
-  const pct = recPrice && current ? ((current - recPrice) / recPrice * 100).toFixed(1) : 'לא ידוע';
+  const pct = recPrice && current ? ((current - recPrice) / recPrice * 100).toFixed(1) : t('unknown');
 
   // fetch recent news headlines from Finnhub
   let newsText = '';
@@ -1675,20 +1875,20 @@ async function aiAnalyze(i) {
     const news = await nr.json();
     if (Array.isArray(news) && news.length > 0) {
       const headlines = news.slice(0, 8).map(n => '- ' + n.headline).join('\n');
-      newsText = `\n\nכותרות חדשות מהתקופה:\n${headlines}`;
+      newsText = `\n\n${t('aiNewsHeader')}\n${headlines}`;
     }
   } catch(e) { /* news fetch failed, continue without */ }
 
-  const today = new Date().toLocaleDateString('he-IL', {year:'numeric',month:'long',day:'numeric'});
+  const today = new Date().toLocaleDateString(t('dateLocale'), {year:'numeric',month:'long',day:'numeric'});
   const list        = data.lists[currentListIdx];
   const isPortfolio = list.stockMode === 'portfolio';
+  const recDate     = item.recDate || t('unknown');
+  const curText     = current ? '$' + current.toFixed(2) : t('unknown');
   const context     = isPortfolio
-    ? `המניה ${item.ticker} נקנתה בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).`
-    : `המניה ${item.ticker} הומלצה על ידי ${item.analyst||'אנליסט'} בתאריך ${item.recDate||'לא ידוע'} בשער $${recPrice}. השער הנוכחי הוא ${current ? '$'+current.toFixed(2) : 'לא ידוע'} (${pct}% שינוי).`;
-  const instruction = isPortfolio
-    ? `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז הקניה לפי החדשות, האם ההשקעה הצליחה, ומה כדאי לשים לב אליו.`
-    : `כתוב ניתוח בעברית בשני חלקים:\n1. תיאור קצר (2 משפטים): מה החברה עושה ובאיזה תחום היא פועלת.\n2. ניתוח (3-4 משפטים): מה קרה מאז ההמלצה לפי החדשות, האם ההמלצה הייתה טובה, ומה כדאי לשים לב אליו.`;
-  const prompt = `היום: ${today}.\n${context}${newsText}\n\n${instruction}`;
+    ? t('aiContextPortfolio')(item.ticker, recDate, recPrice, curText, pct)
+    : t('aiContextRec')(item.ticker, item.analyst || t('aiDefaultAnalyst'), recDate, recPrice, curText, pct);
+  const instruction = isPortfolio ? t('aiInstrPortfolio') : t('aiInstrRec');
+  const prompt = `${t('aiToday')}: ${today}.\n${context}${newsText}\n\n${instruction}`;
 
   try {
     const res  = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1698,9 +1898,9 @@ async function aiAnalyze(i) {
     });
     const d = await res.json();
     const txt = d.content?.[0]?.text || d.error?.message || JSON.stringify(d);
-    resultEl.innerHTML = `<button onclick="document.getElementById('ar-${i}').style.display='none';document.getElementById('ai-btn-${i}').textContent='🤖';" style="position:absolute;top:4px;left:4px;border:none;background:none;font-size:14px;cursor:pointer;color:#aaa">✕</button><span style="display:block;padding-right:4px">${txt.replace(/\n/g,'<br>')}</span>`;
+    resultEl.innerHTML = `<button onclick="document.getElementById('ar-${i}').style.display='none';document.getElementById('ai-btn-${i}').textContent='🤖';" style="position:absolute;top:4px;inset-inline-end:4px;border:none;background:none;font-size:14px;cursor:pointer;color:#aaa">✕</button><span style="display:block;padding-inline-end:18px">${txt.replace(/\n/g,'<br>')}</span>`;
   } catch(e) {
-    resultEl.textContent = 'שגיאה: ' + e.message;
+    resultEl.textContent = t('errGeneric') + e.message;
   }
   btn.textContent = '📖';
   btn.disabled    = false;
@@ -1715,13 +1915,13 @@ function editStockItem(i) {
   const item = data.lists[currentListIdx].items[i];
   const list = data.lists[currentListIdx];
   const isPortfolio = list.stockMode === 'portfolio';
-  const analystLabel = isPortfolio ? 'הערה' : 'אנליסט';
-  showConfirm(`עדכן ${item.ticker}?`, (yes) => {
+  const analystLabel = isPortfolio ? t('noteLabel') : t('analystLabel');
+  showConfirm(t('confirmUpdateStock')(item.ticker), (yes) => {
     if (!yes) return;
-    const ticker  = prompt('טיקר:', item.ticker);
+    const ticker  = prompt(t('promptTicker'), item.ticker);
     if (!ticker) return;
-    const price   = prompt('שער ' + (isPortfolio ? 'קניה' : 'המלצה') + ':', item.recPrice);
-    const date    = prompt('תאריך (YYYY-MM-DD):', item.recDate || '');
+    const price   = prompt((isPortfolio ? t('buyPrice') : t('recPrice')) + ':', item.recPrice);
+    const date    = prompt(t('promptDate'), item.recDate || '');
     const analyst = prompt(analystLabel + ':', item.analyst || '');
     item.ticker   = ticker.toUpperCase().trim();
     item.recPrice = parseFloat(price) || item.recPrice;
@@ -1786,8 +1986,8 @@ function startEditLink(i, row) {
   row.innerHTML = `
     <span style="font-size:20px">🔗</span>
     <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-      <input class="item-edit-input" id="edit-link-name-${i}" value="${item.text}" placeholder="שם">
-      <input class="item-edit-input" id="edit-link-url-${i}"  value="${item.url||''}" placeholder="קישור" type="url">
+      <input class="item-edit-input" id="edit-link-name-${i}" value="${item.text}" placeholder="${t('linkEditNamePh')}">
+      <input class="item-edit-input" id="edit-link-url-${i}"  value="${item.url||''}" placeholder="${t('linkEditUrlPh')}" type="url">
     </div>
     <button class="add-btn" style="background:#27ae60;width:36px;height:36px" id="edit-link-save-${i}">✓</button>`;
   function commit() {
@@ -1814,44 +2014,62 @@ function addLink() {
 }
 
 // ── Reminders CRUD ───────────────────────────────────────────────────────
-// אפשרויות זמני התראה לפריט תזכורת - אפשר לבחור עד 3 מתוכן לכל פריט
-const REMINDER_OFFSET_OPTIONS = [
-  { hours: 168,    label: 'שבוע לפני' },
-  { hours: 72,     label: '3 ימים לפני' },
-  { hours: 24,     label: 'יום לפני' },
-  { hours: 12,     label: 'חצי יום לפני' },
-  { hours: 2,      label: 'שעתיים לפני' },
-  { hours: 1,      label: 'שעה לפני' },
-  { hours: 0.5,    label: 'חצי שעה לפני' },
-  { hours: 0.1667, label: '10 דקות לפני' },
-  { hours: 0,      label: 'בדיוק בזמן הפגישה' },
-];
+// אפשרויות זמני התראה לפריט תזכורת (בשעות) - אפשר לבחור עד 3 מתוכן לכל פריט.
+// התוויות מגיעות מהמילון לפי השפה (I18N.*.offsets)
+const REMINDER_OFFSET_HOURS = [168, 72, 24, 12, 2, 1, 0.5, 0.1667, 0];
 
 function offsetLabel(hours) {
-  const opt = REMINDER_OFFSET_OPTIONS.find(o => Math.abs(o.hours - hours) < 0.01);
-  return opt ? opt.label : `${hours} שעות לפני`;
+  const key = REMINDER_OFFSET_HOURS.find(h => Math.abs(h - hours) < 0.01);
+  return key !== undefined ? t('offsets')[key] : t('offsetHours')(hours);
 }
 
 // אפשרויות חזרתיות לפריט תזכורת - כשפריט "חוזר" מסתיים (נשלחו כל ההתראות שלו / הזמן עבר),
 // send-reminders.js ייצור אוטומטית עותק חדש שלו עם התאריך הבא (שבוע/חודש/שנה קדימה).
-const REPEAT_OPTIONS = [
-  { value: 'none',    label: 'חד פעמי' },
-  { value: 'daily',   label: 'כל יום' },
-  { value: 'weekly',  label: 'כל שבוע' },
-  { value: 'monthly', label: 'כל חודש' },
-  { value: 'yearly',  label: 'כל שנה' },
-];
+const REPEAT_VALUES = ['none', 'daily', 'weekly', 'monthly', 'yearly'];
 
 function repeatLabel(value) {
-  const opt = REPEAT_OPTIONS.find(o => o.value === value);
-  return opt ? opt.label : '';
+  return t('repeats')[value] || '';
+}
+
+// בונה מחדש את תיבות הסימון של זמני ההתראה ואת אפשרויות החזרתיות בשפה הנוכחית,
+// תוך שמירה על מה שכבר נבחר (נקרא בטעינה ובכל החלפת שפה)
+function buildReminderOffsetCheckboxes() {
+  const container = document.getElementById('reminder-offsets-row');
+  const prevSelected = getSelectedReminderOffsets();
+  container.querySelectorAll('label').forEach(el => el.remove());
+  REMINDER_OFFSET_HOURS.forEach(h => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:3px';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'reminder-offset-cb';
+    cb.value = h;
+    cb.addEventListener('change', () => onReminderOffsetChange(cb));
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(offsetLabel(h)));
+    container.appendChild(label);
+  });
+  resetReminderOffsetCheckboxes(prevSelected);
+}
+
+function buildRepeatOptions() {
+  const select = document.getElementById('new-reminder-repeat');
+  const prevValue = select.value || 'none';
+  select.innerHTML = '';
+  REPEAT_VALUES.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = repeatLabel(v);
+    select.appendChild(opt);
+  });
+  select.value = prevValue;
 }
 
 function onReminderOffsetChange(cb) {
   const checked = document.querySelectorAll('.reminder-offset-cb:checked');
   if (checked.length > 3) {
     cb.checked = false;
-    alert('אפשר לבחור עד 3 זמני התראה לכל תזכורת');
+    alert(t('maxOffsets'));
   }
 }
 
@@ -1867,7 +2085,7 @@ function resetReminderOffsetCheckboxes(selected) {
 }
 
 function renderReminderRow(container, i, item) {
-  const dateLabel = item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString('he-IL', {day:'numeric',month:'short',year:'numeric'}) : '';
+  const dateLabel = item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString(t('dateLocale'), {day:'numeric',month:'short',year:'numeric'}) : '';
   const timeLabel = item.time || '';
   const offsets = (item.reminderOffsets && item.reminderOffsets.length) ? item.reminderOffsets : [24];
   const offsetsText = offsets.map(offsetLabel).join(' · ');
@@ -1892,36 +2110,36 @@ function renderReminderRow(container, i, item) {
 
 function editReminderItem(i) {
   const item = data.lists[currentListIdx].items[i];
-  showConfirm(`לערוך את "${item.text}"?`, (yes) => {
+  showConfirm(t('confirmEdit')(item.text), (yes) => {
     if (!yes) return;
-    const text = prompt('פרטי הפגישה:', item.text);
+    const text = prompt(t('promptText'), item.text);
     if (text === null || !text.trim()) return;
-    const location = prompt('מיקום (אופציונלי):', item.location || '');
-    const date = prompt('תאריך (YYYY-MM-DD):', item.date || '');
-    const time = prompt('שעה (HH:MM):', item.time || '');
+    const location = prompt(t('promptLocation'), item.location || '');
+    const date = prompt(t('promptDate'), item.date || '');
+    const time = prompt(t('promptTime'), item.time || '');
 
-    const legend = REMINDER_OFFSET_OPTIONS.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
+    const legend = REMINDER_OFFSET_HOURS.map((h, idx) => `${idx + 1}. ${offsetLabel(h)}`).join('\n');
     const currentOffsets = (item.reminderOffsets && item.reminderOffsets.length) ? item.reminderOffsets : [24];
     const currentNums = currentOffsets
-      .map(h => REMINDER_OFFSET_OPTIONS.findIndex(o => Math.abs(o.hours - h) < 0.01) + 1)
+      .map(h => REMINDER_OFFSET_HOURS.findIndex(o => Math.abs(o - h) < 0.01) + 1)
       .filter(n => n > 0)
       .join(',');
-    const offsetsInput = prompt(`מתי להתריע (עד 3, מספרים מופרדים בפסיק):\n${legend}`, currentNums || '3');
+    const offsetsInput = prompt(`${t('promptOffsets')}\n${legend}`, currentNums || '3');
     let reminderOffsets = currentOffsets;
     if (offsetsInput !== null) {
-      const nums = offsetsInput.split(',').map(s => parseInt(s.trim(), 10)).filter(n => n >= 1 && n <= REMINDER_OFFSET_OPTIONS.length);
+      const nums = offsetsInput.split(',').map(s => parseInt(s.trim(), 10)).filter(n => n >= 1 && n <= REMINDER_OFFSET_HOURS.length);
       const uniqueNums = [...new Set(nums)].slice(0, 3);
-      if (uniqueNums.length) reminderOffsets = uniqueNums.map(n => REMINDER_OFFSET_OPTIONS[n - 1].hours);
+      if (uniqueNums.length) reminderOffsets = uniqueNums.map(n => REMINDER_OFFSET_HOURS[n - 1]);
     }
 
-    const repeatLegend = REPEAT_OPTIONS.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
+    const repeatLegend = REPEAT_VALUES.map((v, idx) => `${idx + 1}. ${repeatLabel(v)}`).join('\n');
     const currentRepeat = item.repeat || 'none';
-    const currentRepeatNum = REPEAT_OPTIONS.findIndex(o => o.value === currentRepeat) + 1;
-    const repeatInput = prompt(`חזרתיות:\n${repeatLegend}`, String(currentRepeatNum || 1));
+    const currentRepeatNum = REPEAT_VALUES.indexOf(currentRepeat) + 1;
+    const repeatInput = prompt(`${t('promptRepeat')}\n${repeatLegend}`, String(currentRepeatNum || 1));
     let repeat = currentRepeat;
     if (repeatInput !== null) {
       const n = parseInt(repeatInput.trim(), 10);
-      if (n >= 1 && n <= REPEAT_OPTIONS.length) repeat = REPEAT_OPTIONS[n - 1].value;
+      if (n >= 1 && n <= REPEAT_VALUES.length) repeat = REPEAT_VALUES[n - 1];
     }
 
     item.text     = text.trim();
@@ -2031,7 +2249,7 @@ function toggleItem(i) {
     // בפועל קופץ לסוף הרשימה - כדי שהמשתמש לא יאבד אותו מהעין בלי התראה
     recentlyToggled.add(item);
     renderItems();
-    const doneWord = data.lists[listIdx].type === 'shop' ? 'הפריט נקנה' : 'הפריט סומן כבוצע';
+    const doneWord = data.lists[listIdx].type === 'shop' ? t('itemBought') : t('itemDone');
     showUndoToast(doneWord, () => {
       item.done = false;
       recentlyToggled.delete(item);
@@ -2056,7 +2274,7 @@ function deleteItem(i) {
   const [removed] = list.items.splice(i, 1);
   save(); renderItems();
 
-  showUndoToast('הפריט נמחק', () => {
+  showUndoToast(t('itemDeleted'), () => {
     const l = data.lists[listIdx];
     if (!l) return;
     l.items.splice(Math.min(i, l.items.length), 0, removed);
@@ -2074,7 +2292,7 @@ function showUndoToast(text, onUndo) {
   const toast = document.createElement('div');
   toast.id = 'undo-toast';
   toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom, 0px));background:#323232;color:#fff;padding:11px 16px;border-radius:12px;display:flex;align-items:center;gap:16px;font-size:14px;font-family:inherit;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:88%;';
-  toast.innerHTML = `<span>${text}</span><button style="background:none;border:none;color:#7fc4ff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap">↩ בטל</button>`;
+  toast.innerHTML = `<span>${text}</span><button style="background:none;border:none;color:#7fc4ff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap">${t('undo')}</button>`;
   toast.querySelector('button').onclick = () => {
     clearTimeout(_undoToastTimer);
     toast.remove();
@@ -2124,7 +2342,7 @@ function renderTemplateItems() {
   container.innerHTML = '';
   if (!data.template.length) {
     container.innerHTML = `<div class="empty-msg">
-      <span class="big">⭐</span>הוסף פריטים קבועים<br>שיופיעו בכל רשימת קניות חדשה
+      <span class="big">⭐</span>${t('templateEmpty')}
     </div>`;
     return;
   }
@@ -2192,7 +2410,7 @@ function generateNtfyTopic() {
 
 async function renderAdminUsers() {
   const container = document.getElementById('admin-users-list');
-  container.innerHTML = '<div style="color:#aaa;font-size:13px">טוען...</div>';
+  container.innerHTML = `<div style="color:#aaa;font-size:13px">${t('loading')}</div>`;
   const snap = await getDoc(CONFIG_DOC);
   const list = normalizeList(snap.exists() ? snap.data().allowed : []);
   container.innerHTML = '';
@@ -2203,19 +2421,19 @@ async function renderAdminUsers() {
     row.innerHTML = `
       <div style="flex:1">
         ${u.name ? `<div style="font-size:14px;font-weight:600;color:${u.active ? '#222' : '#aaa'}">${escHtml(u.name)}</div>` : ''}
-        <div style="font-size:${u.name ? '12px' : '14px'};color:${u.active ? (u.name ? '#777' : '#333') : '#aaa'}">${u.email} <button onclick="setUserName('${u.email}')" style="border:none;background:none;color:#2f6fed;cursor:pointer;font-size:12px;padding:0 4px">${u.name ? 'שנה שם' : 'הוסף שם'}</button></div>
-        <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? 'פעיל' : 'מושהה'}</div>
-        ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:none;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:12px;font-weight:600;padding:0 10px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">העתק</button></div>` : `<button onclick="setNtfyTopic('${u.email}')" style="margin-top:6px;border:none;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:12px;font-weight:600;padding:0 10px;height:28px;border-radius:8px">הגדר ערוץ ntfy</button>`}
+        <div style="font-size:${u.name ? '12px' : '14px'};color:${u.active ? (u.name ? '#777' : '#333') : '#aaa'}">${u.email} <button onclick="setUserName('${u.email}')" style="border:none;background:none;color:#2f6fed;cursor:pointer;font-size:12px;padding:0 4px">${u.name ? t('changeName') : t('addName')}</button></div>
+        <div style="font-size:11px;color:${u.active ? '#27ae60' : '#e74c3c'}">${u.active ? t('statusActive') : t('statusSuspended')}</div>
+        ${u.ntfyTopic ? `<div style="font-size:10px;color:#999;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">ntfy: <span style="font-family:monospace">${u.ntfyTopic}</span> <button onclick="copyNtfyTopic('${u.ntfyTopic}')" style="border:none;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:12px;font-weight:600;padding:0 10px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${t('copyBtn')}</button></div>` : `<button onclick="setNtfyTopic('${u.email}')" style="margin-top:6px;border:none;background:#eaf1fe;color:#2f6fed;cursor:pointer;font-size:12px;font-weight:600;padding:0 10px;height:28px;border-radius:8px">${t('setNtfyBtn')}</button>`}
       </div>
       ${isAdmin ? '' : `
         <button onclick="toggleUserActive('${u.email}',${!u.active})" style="border:none;background:${u.active ? '#fff3cd' : '#d4edda'};color:${u.active ? '#856404' : '#276036'};padding:0 10px;height:28px;min-width:52px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
-          ${u.active ? 'השהה' : 'הפעל'}
+          ${u.active ? t('suspendBtn') : t('enableBtn')}
         </button>
         <button onclick="removeAllowedUser('${u.email}')" style="border:none;background:#fdecea;color:#e74c3c;padding:0;width:28px;height:28px;border-radius:8px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">✕</button>
       `}`;
     container.appendChild(row);
   });
-  if (!list.length) container.innerHTML = '<div style="color:#aaa;font-size:13px">אין משתמשים</div>';
+  if (!list.length) container.innerHTML = `<div style="color:#aaa;font-size:13px">${t('noUsers')}</div>`;
 }
 
 // הגדרת ערוץ ntfy למשתמש שאין לו (למשל המנהל, או משתמשים ותיקים).
@@ -2225,12 +2443,12 @@ function setNtfyTopic(email) {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
   modal.innerHTML = `
     <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 40px">
-      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">ערוץ ntfy</p>
-      <p style="font-size:12px;color:#888;margin-bottom:14px;text-align:center;line-height:1.5">${escHtml(email)}<br>אם כבר רשומים לערוץ באפליקציית ntfy (למשל של התזכורות) - הדבק את השם שלו.<br>אחרת השאר את הערוץ החדש ורשום אליו.</p>
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">${t('ntfyChannel')}</p>
+      <p style="font-size:12px;color:#888;margin-bottom:14px;text-align:center;line-height:1.5">${escHtml(email)}<br>${t('ntfyHint')}</p>
       <input id="ntfy-topic-input" class="add-input" style="width:100%;direction:ltr;font-family:monospace;font-size:13px;margin-bottom:14px" value="${generateNtfyTopic()}">
       <div style="display:flex;gap:12px">
-        <button id="nt-cancel" style="flex:1;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit">ביטול</button>
-        <button id="nt-save" style="flex:1;padding:13px;border:none;border-radius:12px;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">שמור</button>
+        <button id="nt-cancel" style="flex:1;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit">${t('cancelBtn')}</button>
+        <button id="nt-save" style="flex:1;padding:13px;border:none;border-radius:12px;background:#4a90d9;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">${t('saveBtn')}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -2242,18 +2460,18 @@ function setNtfyTopic(email) {
     const topic = modal.querySelector('#ntfy-topic-input').value
       .replace(/[\s​-‏‪-‮⁦-⁩﻿]/g, '')
       .replace(/\/+$/, '').split('/').pop();
-    if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { alert(`שם ערוץ לא תקין (אותיות באנגלית, ספרות, - ו-_ בלבד):\n${topic}`); return; }
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(topic)) { alert(t('invalidTopic')(topic)); return; }
     try {
       const snap = await getDoc(CONFIG_DOC);
       const list = normalizeList(snap.exists() ? snap.data().allowed : []);
       const u = list.find(x => x.email.toLowerCase() === email.toLowerCase());
-      if (!u) { alert('המשתמש לא נמצא'); return; }
+      if (!u) { alert(t('userNotFound')); return; }
       u.ntfyTopic = topic;
       await setDoc(CONFIG_DOC, { allowed: list });
       close();
       renderAdminUsers();
     } catch(e) {
-      alert('שגיאה: ' + e.message);
+      alert(t('errGeneric') + e.message);
     }
   };
 }
@@ -2263,40 +2481,40 @@ async function setUserName(email) {
   const snap = await getDoc(CONFIG_DOC);
   const list = normalizeList(snap.exists() ? snap.data().allowed : []);
   const u = list.find(x => x.email.toLowerCase() === email.toLowerCase());
-  if (!u) { alert('המשתמש לא נמצא'); return; }
-  const name = prompt(`שם עבור ${email}\n(השאר ריק כדי להציג את המייל)`, u.name || '');
+  if (!u) { alert(t('userNotFound')); return; }
+  const name = prompt(t('namePrompt')(email), u.name || '');
   if (name === null) return;
   if (name.trim()) u.name = name.trim(); else delete u.name;
   try {
     await setDoc(CONFIG_DOC, { allowed: list });
     renderAdminUsers();
   } catch(e) {
-    alert('שגיאה: ' + e.message);
+    alert(t('errGeneric') + e.message);
   }
 }
 
 async function addAllowedUser() {
   const input = document.getElementById('new-user-input');
   const email = input.value.trim().toLowerCase();
-  if (!email || !email.includes('@')) { alert('מייל לא תקין'); return; }
+  if (!email || !email.includes('@')) { alert(t('invalidEmail')); return; }
   try {
     const snap = await getDoc(CONFIG_DOC);
     const list = normalizeList(snap.exists() ? snap.data().allowed : []);
-    if (list.find(u => u.email.toLowerCase() === email)) { alert('מייל כבר קיים'); return; }
+    if (list.find(u => u.email.toLowerCase() === email)) { alert(t('emailExists')); return; }
     const ntfyTopic = generateNtfyTopic();
     list.push({ email, active: true, ntfyTopic });
     await setDoc(CONFIG_DOC, { allowed: list });
     input.value = '';
     renderAdminUsers();
-    alert(`המשתמש נוסף בהצלחה!\n\nנושא ה-ntfy הפרטי שנוצר עבורו:\n${ntfyTopic}\n\nיש למסור לו את הנושא הזה כדי שירשם (Subscribe) אליו באפליקציית ntfy - כך ההתראות שלו יגיעו רק אליו.`);
+    alert(t('userAdded')(ntfyTopic));
   } catch(e) {
-    alert('שגיאה: ' + e.message);
+    alert(t('errGeneric') + e.message);
   }
 }
 
 function copyNtfyTopic(topic) {
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(topic).then(() => alert('הועתק!')).catch(() => fallbackCopyText(topic));
+    navigator.clipboard.writeText(topic).then(() => alert(t('copied'))).catch(() => fallbackCopyText(topic));
   } else {
     fallbackCopyText(topic);
   }
@@ -2313,9 +2531,9 @@ function fallbackCopyText(text) {
   ta.select();
   try {
     document.execCommand('copy');
-    alert('הועתק!');
+    alert(t('copied'));
   } catch (e) {
-    alert('לא הצלחתי להעתיק אוטומטית. יש להעתיק ידנית:\n' + text);
+    alert(t('copyFailed') + text);
   }
   document.body.removeChild(ta);
 }
@@ -2330,7 +2548,7 @@ async function toggleUserActive(email, newState) {
 }
 
 async function removeAllowedUser(email) {
-  if (!confirm(`למחוק את ${email}?`)) return;
+  if (!confirm(t('confirmRemoveUser')(email))) return;
   const snap = await getDoc(CONFIG_DOC);
   const list = normalizeList(snap.exists() ? snap.data().allowed : []).filter(u => u.email.toLowerCase() !== email.toLowerCase());
   await setDoc(CONFIG_DOC, { allowed: list });
@@ -2351,7 +2569,7 @@ function shareListWhatsapp() {
         const pct = cur && rec ? ((cur - rec) / rec * 100).toFixed(1) : '?';
         const sign = pct >= 0 ? '+' : '';
         const isPortfolio = list.stockMode === 'portfolio';
-        lines.push(`• ${item.ticker} | ${isPortfolio?'קניה':'המלצה'}: $${rec.toFixed(2)} | נוכחי: ${cur?'$'+cur.toFixed(2):'?'} (${sign}${pct}%) | ${item.analyst||''} ${item.recDate||''}`);
+        lines.push(`• ${item.ticker} | ${isPortfolio?t('shareBuy'):t('shareRec')}: $${rec.toFixed(2)} | ${t('current')}: ${cur?'$'+cur.toFixed(2):'?'} (${sign}${pct}%) | ${item.analyst||''} ${item.recDate||''}`);
       }
       else if (list.type === 'reminders') {
         lines.push(`🔔 ${item.text}${item.location ? ' | 📍 ' + item.location : ''} | ${item.date||''} ${item.time||''}`);
@@ -2361,11 +2579,16 @@ function shareListWhatsapp() {
     const text = encodeURIComponent(lines.join('\n'));
     location.href = `https://wa.me/?text=${text}`;
   };
-  showConfirm('לכלול פריטים שסומנו כ"נעשו"?', doShare);
+  showConfirm(t('includeDone'), doShare);
 }
+
+// הפעלה ראשונית של השפה - רק כאן, אחרי שכל המשתנים בקובץ כבר הוגדרו
+// (ב-MyRems קריאה מוקדמת יותר גרמה לקריסת TDZ)
+applyStaticI18n();
 
 // חשיפת פונקציות ל-HTML
 Object.assign(window, {
+  toggleLanguage,
   openNewListModal, createList, selectType, selectStockMode, editStockItem,
   openList, goHome, openTemplate,
   addItem, addTask, addLink, addStock, addReminder, editReminderItem, aiAnalyze, setPri,
