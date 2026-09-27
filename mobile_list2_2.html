@@ -1727,10 +1727,10 @@ function renderLinkRow(container, i, item) {
   wrapper.style = 'background:#fff;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)';
   const row = document.createElement('div');
   row.className = 'item-row';
-  row.style = 'cursor:pointer;margin-bottom:0';
+  row.style = 'margin-bottom:0';
   row.innerHTML = `
     <span style="font-size:20px">🔗</span>
-    <div style="flex:1;min-width:0">
+    <div class="link-open-area" style="flex:1;min-width:0;cursor:pointer">
       <div class="item-text" style="font-weight:600">${item.text}</div>
       <div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.url||''}</div>
     </div>
@@ -1745,11 +1745,12 @@ function renderLinkRow(container, i, item) {
   row.appendChild(delBtn);
   row.querySelector('.edit-link-btn').addEventListener('click', e => {
     e.stopPropagation();
-    row.removeEventListener('click', openLink);
     startEditLink(i, row);
   });
-  function openLink() { if (item.url) window.open(item.url, '_blank'); }
-  row.addEventListener('click', openLink);
+  // רק לחיצה על השם או הקישור פותחת אותו - לא לחיצה על הכפתורים שבשורה
+  row.querySelector('.link-open-area').addEventListener('click', () => {
+    if (item.url) window.open(item.url, '_blank');
+  });
   wrapper.appendChild(row);
   wrapper.appendChild(panel);
   container.appendChild(wrapper);
