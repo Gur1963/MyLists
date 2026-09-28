@@ -85,12 +85,6 @@
     box-shadow: 0 4px 16px rgba(74,144,217,.5);
     display: flex; align-items: center; justify-content: center;
   }
-  .fab-template {
-    width: 44px; height: 44px; background: #8e44ad; border-radius: 50%;
-    border: none; color: #fff; font-size: 20px; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(142,68,173,.4);
-    display: flex; align-items: center; justify-content: center;
-  }
 
   /* Modal */
   .modal-overlay {
@@ -285,12 +279,33 @@
   }
   .empty-msg .big { font-size: 38px; display: block; margin-bottom: 8px; }
 
-  /* Template screen hint */
+  /* רשימות בסיס - רשימות מסוג פריטים שמשמשות רק להעתקה לרשימות חדשות */
   .template-hint {
     background: #f9f0ff; padding: 9px 14px;
     font-size: 12px; color: #8e44ad; text-align: start;
     border-bottom: 1px solid #edd6f8;
+    display: flex; align-items: center; gap: 10px;
   }
+  .template-hint span { flex: 1; }
+  .base-hint-btn {
+    border: none; background: #8e44ad; color: #fff; border-radius: 10px;
+    padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .base-section-title {
+    font-size: 13px; font-weight: 700; color: #8e44ad;
+    margin: 18px 4px 10px;
+  }
+  .base-picker-title { font-size: 13px; font-weight: 600; color: #8e44ad; margin-bottom: 8px; }
+  .base-picker-list { max-height: 150px; overflow-y: auto; }
+  .base-pick-row, .base-flag-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; margin-bottom: 6px; border-radius: 10px;
+    background: #f9f0ff; font-size: 14px; color: #333; cursor: pointer;
+  }
+  .base-flag-row { background: #f8f8f8; font-size: 13px; color: #555; margin-bottom: 12px; }
+  .base-pick-row input, .base-flag-row input { width: 18px; height: 18px; accent-color: #8e44ad; flex-shrink: 0; }
+  .base-pick-count { margin-inline-start: auto; font-size: 11px; color: #999; }
 
   /* Bottom nav */
   .bottom-nav {
@@ -349,7 +364,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.1</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.2</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -371,8 +386,8 @@
 
           <div class="type-selector">
             <div class="type-opt selected" id="type-shop" onclick="selectType('shop')">
-              <span class="type-icon">🛒</span>
-              <span class="type-label" data-i18n="typeShop">קניות</span>
+              <span class="type-icon">📝</span>
+              <span class="type-label" data-i18n="typeShop">פריטים</span>
             </div>
             <div class="type-opt" id="type-tasks" onclick="selectType('tasks')">
               <span class="type-icon">✅</span>
@@ -399,6 +414,15 @@
 
           <div class="emoji-row" id="emoji-row"></div>
           <input class="modal-input" id="new-list-name" data-i18n-ph="newListNamePh" placeholder="שם הרשימה..." maxlength="30">
+
+          <div id="base-picker" style="display:none;margin-bottom:12px">
+            <div class="base-picker-title" data-i18n="basePickerTitle">להוסיף פריטים מרשימות בסיס?</div>
+            <div class="base-picker-list" id="base-picker-list"></div>
+          </div>
+          <label class="base-flag-row" id="base-flag-row">
+            <input type="checkbox" id="new-list-is-base">
+            <span data-i18n="markAsBaseLabel">⭐ זו רשימת בסיס (להעתקה בלבד)</span>
+          </label>
           <button class="modal-btn" onclick="createList()" data-i18n="createListBtn">צור רשימה</button>
         </div>
       </div>
@@ -430,29 +454,19 @@
       <div class="lists-container" id="archive-list"></div>
     </div>
 
-    <!-- ══ TEMPLATE ══ -->
-    <div class="screen" id="screen-template">
-      <div class="detail-header" style="background:linear-gradient(135deg,#8e44ad,#6c3483)">
-        <button class="back-btn" onclick="goHome()">‹</button>
-        <span class="detail-icon-big">⭐</span>
-        <span class="detail-title" data-i18n="templateTitle">רשימת בסיס</span>
-      </div>
-      <div class="template-hint" data-i18n="templateHint">פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה</div>
-      <div class="add-bar-simple">
-        <button class="add-btn" style="background:#8e44ad" onclick="addTemplateItem()">+</button>
-        <input class="add-input" id="new-template-input" data-i18n-ph="addTemplatePh" placeholder="הוסף פריט קבוע..."
-               onkeydown="if(event.key==='Enter') addTemplateItem()">
-      </div>
-      <div class="items-list" id="template-items-list"></div>
-    </div>
-
     <!-- ══ LIST DETAIL ══ -->
     <div class="screen" id="screen-detail">
       <div class="detail-header" id="detail-header">
         <button class="back-btn" onclick="goHome()">‹</button>
         <span class="detail-icon-big" id="detail-icon"></span>
         <span class="detail-title" id="detail-title"></span>
+        <button class="back-btn" id="base-toggle-btn" onclick="toggleBaseFlag()" style="font-size:17px">⭐</button>
         <button class="back-btn" onclick="shareListWhatsapp()" data-i18n-title="shareWhatsappTitle" title="שלח ב-WhatsApp" style="margin-inline-start:auto;font-size:20px">📤</button>
+      </div>
+
+      <div class="template-hint" id="base-hint" style="display:none">
+        <span data-i18n="baseHint">רשימת בסיס – לעריכה בלבד, משמשת להעתקה לרשימות חדשות</span>
+        <button class="base-hint-btn" onclick="createFromCurrentBase()" data-i18n="createFromBase">+ צור רשימה מזו</button>
       </div>
 
       <!-- add bar: shown/hidden by type -->
@@ -558,7 +572,6 @@
         </button>
       </div>
       <div style="flex:1;display:flex;justify-content:center;gap:12px;align-items:center">
-        <button class="fab-template" onclick="openTemplate()">⭐</button>
         <button class="fab" style="position:static;transform:none;width:48px;height:48px" onclick="openNewListModal()">+</button>
       </div>
       <div style="flex:1;display:flex;justify-content:center" id="admin-btn-wrap" style="display:none">
@@ -594,7 +607,7 @@ let currentUser = null;
 let DOC = null;
 let isAdminUser = false;
 
-const EMOJIS_SHOP  = ['🛒','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
+const EMOJIS_SHOP  = ['🛒','🧳','🥦','🍕','🥩','🧃','🧹','💊','🐾'];
 const EMOJIS_TASKS = ['✅','💼','🏠','📚','💪','✈️','🎯','💡'];
 const EMOJIS_LINKS   = ['🔗','📌','📚','🎬','🎵','💡','🌐','⭐'];
 const EMOJIS_STOCKS  = ['📈','💹','🏦','💰','📊','🚀','💎','⚡'];
@@ -612,7 +625,7 @@ const PRI = {
 };
 const PRI_ORDER = ['high','medium','low','none'];
 
-let data = { lists: [], template: [], archive: [] };
+let data = { lists: [], archive: [] };
 const ARCHIVE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // חודש
 let currentListIdx = null;
 // כשמסמנים פריט כ"בוצע" הוא זז לסוף הרשימה ונעלם מהעין - נשהה קצת את המיון
@@ -643,20 +656,25 @@ const I18N = {
     listEmpty: 'ריקה', listEmptyMsg: 'הרשימה ריקה — הוסף פריט ראשון',
     renameBtnTitle: 'שנה שם', duplicateBtnTitle: 'שכפל', sendBtnTitle: 'שלח למשתמש', deleteBtnTitle: 'מחק',
     newListTitle: 'רשימה חדשה', newListNamePh: 'שם הרשימה...', createListBtn: 'צור רשימה',
-    typeShop: 'קניות', typeTasks: 'משימות', typeLinks: 'הפניות', typeStocks: 'מניות', typeReminders: 'תזכורות',
+    typeShop: 'פריטים', typeTasks: 'משימות', typeLinks: 'הפניות', typeStocks: 'מניות', typeReminders: 'תזכורות',
     stockModeRec: '📊 המלצות אנליסטים', stockModePort: '💼 תיק שלי',
     renameTitle: 'שינוי שם רשימה', newNamePh: 'שם חדש...', saveBtn: 'שמור', cancelBtn: 'ביטול',
     yes: 'כן', no: 'לא', addBtn: 'הוסף',
     copySuffix: ' (עותק)', confirmDeleteList: name => `למחוק את הרשימה "${name}"?`,
-    renamePrompt: 'שם חדש לרשימה:', attachTemplate: 'לצרף את רשימת הבסיס?',
+    renamePrompt: 'שם חדש לרשימה:',
     navHome: 'בית', navArchive: 'ארכיון', navSettings: 'הגדרות',
     settingsTitle: '⚙️ הגדרות', allowedUsersTitle: 'משתמשים מורשים', addEmailPh: 'הוסף מייל...',
     archiveTitle: '🗑 ארכיון', archiveHint: 'רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות',
     archiveEmpty: 'הארכיון ריק', itemsCount: n => `${n} פריטים`, deletesIn: d => `נמחק בעוד ${d} יום`,
     restoreTitle: 'שחזר', purgeTitle: 'מחק לצמיתות',
     confirmPurge: name => `למחוק את "${name}" לצמיתות? לא ניתן לשחזר.`,
-    templateTitle: 'רשימת בסיס', templateHint: 'פריטים אלו יופיעו אוטומטית בכל רשימת קניות חדשה',
-    addTemplatePh: 'הוסף פריט קבוע...', templateEmpty: 'הוסף פריטים קבועים<br>שיופיעו בכל רשימת קניות חדשה',
+    baseDefaultName: 'רשימת בסיס', basesSection: '⭐ רשימות בסיס', baseBadge: 'בסיס',
+    basePickerTitle: 'להוסיף פריטים מרשימות בסיס?', markAsBaseLabel: '⭐ זו רשימת בסיס (להעתקה בלבד)',
+    baseHint: 'רשימת בסיס – לעריכה בלבד, משמשת להעתקה לרשימות חדשות', createFromBase: '+ צור רשימה מזו',
+    markBaseTitle: 'סמן כרשימת בסיס', unmarkBaseTitle: 'בטל סימון רשימת בסיס',
+    confirmMarkBase: 'להפוך לרשימת בסיס? הרשימה תשמש להעתקה בלבד, וסימוני "בוצע" יאופסו.',
+    confirmUnmarkBase: 'להחזיר לרשימה רגילה?',
+    baseMarked: 'הרשימה סומנה כרשימת בסיס ⭐', baseUnmarked: 'הרשימה הוחזרה לרשימה רגילה',
     shareWhatsappTitle: 'שלח ב-WhatsApp', addItemPh: 'הוסף פריט...',
     pricePh: 'שער', analystPh: 'אנליסט', notePh: 'הערה (אופציונלי)',
     linkNamePh: 'שם ההפניה...', linkUrlPh: 'קישור (https://...)', linkEditNamePh: 'שם', linkEditUrlPh: 'קישור',
@@ -664,7 +682,7 @@ const I18N = {
     priNone: 'ללא', priLow: 'נמוכה', priMedium: 'בינונית', priHigh: 'גבוהה',
     editDateTitle: 'לחץ לעריכת תאריך', addDateTitle: 'הוסף תאריך', addDate: '+ תאריך',
     searchWebTitle: 'חפש ברשת', notesTitle: 'הערות', notesPh: 'הערות...',
-    itemBought: 'הפריט נקנה', itemDone: 'הפריט סומן כבוצע', itemDeleted: 'הפריט נמחק', undo: '↩ בטל',
+    itemBought: 'הפריט סומן', itemDone: 'הפריט סומן כבוצע', itemDeleted: 'הפריט נמחק', undo: '↩ בטל',
     reminderTextPh: 'לדוגמה: תור לרופא עור', reminderLocationPh: 'מיקום (אופציונלי)',
     offsetsLabel: 'מתי להתריע (עד 3):', repeatLabel: 'חזרתיות:',
     maxOffsets: 'אפשר לבחור עד 3 זמני התראה לכל תזכורת',
@@ -717,20 +735,25 @@ const I18N = {
     listEmpty: 'Empty', listEmptyMsg: 'The list is empty — add the first item',
     renameBtnTitle: 'Rename', duplicateBtnTitle: 'Duplicate', sendBtnTitle: 'Send to user', deleteBtnTitle: 'Delete',
     newListTitle: 'New list', newListNamePh: 'List name...', createListBtn: 'Create list',
-    typeShop: 'Shopping', typeTasks: 'Tasks', typeLinks: 'Links', typeStocks: 'Stocks', typeReminders: 'Reminders',
+    typeShop: 'Items', typeTasks: 'Tasks', typeLinks: 'Links', typeStocks: 'Stocks', typeReminders: 'Reminders',
     stockModeRec: '📊 Analyst picks', stockModePort: '💼 My portfolio',
     renameTitle: 'Rename list', newNamePh: 'New name...', saveBtn: 'Save', cancelBtn: 'Cancel',
     yes: 'Yes', no: 'No', addBtn: 'Add',
     copySuffix: ' (copy)', confirmDeleteList: name => `Delete the list "${name}"?`,
-    renamePrompt: 'New list name:', attachTemplate: 'Add the base list items?',
+    renamePrompt: 'New list name:',
     navHome: 'Home', navArchive: 'Archive', navSettings: 'Settings',
     settingsTitle: '⚙️ Settings', allowedUsersTitle: 'Approved users', addEmailPh: 'Add email...',
     archiveTitle: '🗑 Archive', archiveHint: 'Deleted lists are kept here for a month, then deleted permanently',
     archiveEmpty: 'The archive is empty', itemsCount: n => `${n} items`, deletesIn: d => `Deleted in ${d} days`,
     restoreTitle: 'Restore', purgeTitle: 'Delete permanently',
     confirmPurge: name => `Delete "${name}" permanently? This can't be undone.`,
-    templateTitle: 'Base list', templateHint: 'These items are added automatically to every new shopping list',
-    addTemplatePh: 'Add a fixed item...', templateEmpty: 'Add fixed items<br>that appear in every new shopping list',
+    baseDefaultName: 'Base list', basesSection: '⭐ Base lists', baseBadge: 'Base',
+    basePickerTitle: 'Add items from base lists?', markAsBaseLabel: '⭐ This is a base list (for copying only)',
+    baseHint: 'Base list – for editing only, used to copy into new lists', createFromBase: '+ New list from this',
+    markBaseTitle: 'Mark as base list', unmarkBaseTitle: 'Unmark base list',
+    confirmMarkBase: 'Turn into a base list? It will be used for copying only, and "done" marks will be cleared.',
+    confirmUnmarkBase: 'Turn back into a regular list?',
+    baseMarked: 'The list is now a base list ⭐', baseUnmarked: 'The list is a regular list again',
     shareWhatsappTitle: 'Send via WhatsApp', addItemPh: 'Add item...',
     pricePh: 'Price', analystPh: 'Analyst', notePh: 'Note (optional)',
     linkNamePh: 'Link name...', linkUrlPh: 'URL (https://...)', linkEditNamePh: 'Name', linkEditUrlPh: 'URL',
@@ -738,7 +761,7 @@ const I18N = {
     priNone: 'None', priLow: 'Low', priMedium: 'Medium', priHigh: 'High',
     editDateTitle: 'Tap to edit date', addDateTitle: 'Add date', addDate: '+ Date',
     searchWebTitle: 'Search the web', notesTitle: 'Notes', notesPh: 'Notes...',
-    itemBought: 'Item bought', itemDone: 'Item marked done', itemDeleted: 'Item deleted', undo: '↩ Undo',
+    itemBought: 'Item checked', itemDone: 'Item marked done', itemDeleted: 'Item deleted', undo: '↩ Undo',
     reminderTextPh: 'e.g. Dermatologist appointment', reminderLocationPh: 'Location (optional)',
     offsetsLabel: 'When to remind (up to 3):', repeatLabel: 'Repeat:',
     maxOffsets: 'You can pick up to 3 reminder times per item',
@@ -809,13 +832,13 @@ function applyI18n() {
   const active = document.querySelector('.screen.active')?.id;
   if (active === 'screen-detail' && data.lists[currentListIdx]) {
     const list = data.lists[currentListIdx];
+    document.getElementById('base-toggle-btn').title = t(list.isBase ? 'unmarkBaseTitle' : 'markBaseTitle');
     if (list.type === 'stocks') {
       document.getElementById('new-stock-analyst').placeholder = list.stockMode === 'portfolio' ? t('notePh') : t('analystPh');
     }
     renderItems();
   }
   if (active === 'screen-archive')  renderArchive();
-  if (active === 'screen-template') renderTemplateItems();
   if (active === 'screen-admin')    renderAdminUsers();
 }
 
@@ -842,7 +865,6 @@ async function loadFromCloud() {
     const snap = await getDoc(DOC);
     if (snap.exists()) {
       data = snap.data();
-      if (!data.template) data.template = [];
       if (!data.archive)  data.archive  = [];
     } else {
       // העברת נתונים ישנים מ-gurgurs אם קיימים
@@ -850,11 +872,12 @@ async function loadFromCloud() {
       const oldSnap = await getDoc(oldDoc);
       if (oldSnap.exists()) {
         data = oldSnap.data();
-        if (!data.template) data.template = [];
         if (!data.archive)  data.archive  = [];
         await setDoc(DOC, data);
       }
     }
+    if (!data.lists) data.lists = [];
+    if (migrateTemplate()) save();
     purgeExpiredArchive();
   } catch(e) {
     console.error("שגיאת טעינה:", e);
@@ -867,6 +890,21 @@ async function loadFromCloud() {
   updateArchiveBadge();
   applyStaticI18n();
   renderHome();
+}
+
+// רשימת הבסיס הישנה (data.template - מערך מחרוזות אחד) הופכת לרשימה רגילה מסוג פריטים
+// שמסומנת כרשימת בסיס. מחזיר true אם צריך לשמור.
+function migrateTemplate() {
+  if (!('template' in data)) return false;
+  const old = data.template;
+  delete data.template;
+  if (Array.isArray(old) && old.length) {
+    data.lists.push({
+      name: t('baseDefaultName'), emoji: '🛒', color: COLORS[data.lists.length % COLORS.length],
+      type: 'shop', isBase: true, items: old.map(text => ({ text, done: false }))
+    });
+  }
+  return true;
 }
 
 function showLoginScreen() {
@@ -937,7 +975,7 @@ onAuthStateChanged(auth, async user => {
     }
     currentUser = user;
     DOC = doc(db, "users", user.uid);
-    data = { lists: [], template: [] };
+    data = { lists: [], archive: [] };
     await loadFromCloud();
     try {
       const keysSnap = await getDoc(doc(db, "config", "keys"));
@@ -986,11 +1024,14 @@ function renderHome() {
 
   container.innerHTML = '';
 
-  const entries = data.lists
+  const matching = data.lists
     .map((list, i) => ({ list, i }))
     .filter(({ list }) => !homeFilter || list.name.toLowerCase().includes(homeFilter));
+  // רשימות בסיס מוצגות בנפרד בתחתית, כדי שלא יתערבבו עם הרשימות לעבודה
+  const baseEntries = matching.filter(({ list }) => list.isBase);
+  const entries = matching.filter(({ list }) => !list.isBase);
 
-  if (homeFilter && !entries.length) {
+  if (homeFilter && !matching.length) {
     container.innerHTML = `<div class="empty-msg">
       <span class="big">🔍</span>
       ${t('noListsMatch')}
@@ -998,7 +1039,7 @@ function renderHome() {
     return;
   }
 
-  entries.forEach(({ list, i }) => {
+  const renderCard = ({ list, i }) => {
     const isTask = list.type === 'tasks';
     const done   = list.items.filter(it => it.done).length;
     const total  = list.items.length;
@@ -1007,8 +1048,9 @@ function renderHome() {
     const isLinks   = list.type === 'links';
     const isStocks  = list.type === 'stocks';
     const isReminders = list.type === 'reminders';
-    const typeColor = isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : isReminders ? '#c0392b' : '#4a90d9';
-    const typeLabel = isTask ? '✅ ' + t('typeTasks') : isLinks ? '🔗 ' + t('typeLinks') : isStocks ? '📈 ' + t('typeStocks') : isReminders ? '🔔 ' + t('typeReminders') : '🛒 ' + t('typeShop');
+    const typeColor = list.isBase ? '#8e44ad' : isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : isReminders ? '#c0392b' : '#4a90d9';
+    const typeLabel = list.isBase ? '⭐ ' + t('baseBadge') : isTask ? '✅ ' + t('typeTasks') : isLinks ? '🔗 ' + t('typeLinks') : isStocks ? '📈 ' + t('typeStocks') : isReminders ? '🔔 ' + t('typeReminders') : '📝 ' + t('typeShop');
+    const countText = !total ? t('listEmpty') : list.isBase ? t('itemsCount')(total) : `${done}/${total}`;
 
     const card = document.createElement('div');
     card.className = 'list-card';
@@ -1018,7 +1060,7 @@ function renderHome() {
         <div class="list-name">${list.name}</div>
         <div class="list-meta">
           <span class="type-badge" style="background:${typeColor}18;color:${typeColor}">${typeLabel}</span>
-          <span>${total ? `${done}/${total}` : t('listEmpty')}</span>
+          <span>${countText}</span>
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -1034,7 +1076,16 @@ function renderHome() {
     card.querySelector('.delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteList(i); });
     card.onclick = () => openList(i);
     container.appendChild(card);
-  });
+  };
+
+  entries.forEach(renderCard);
+  if (baseEntries.length) {
+    const title = document.createElement('div');
+    title.className = 'base-section-title';
+    title.textContent = t('basesSection');
+    container.appendChild(title);
+    baseEntries.forEach(renderCard);
+  }
 }
 
 function renameList(idx) {
@@ -1384,6 +1435,29 @@ function selectType(t) {
   document.getElementById('stock-mode-row').style.display = t === 'stocks' ? 'flex' : 'none';
   if (t === 'stocks') selectStockMode('recommendations');
   buildEmojiRow();
+  renderBasePicker();
+}
+
+// רשימות בסיס רלוונטיות רק לרשימות מסוג פריטים: אפשר לבחור כמה בסיסים שהפריטים
+// שלהם יועתקו לרשימה החדשה, או לסמן שהרשימה החדשה עצמה היא רשימת בסיס
+function renderBasePicker(preselectIdx) {
+  const isShop = selectedType === 'shop';
+  document.getElementById('base-flag-row').style.display = isShop ? 'flex' : 'none';
+  if (!isShop) document.getElementById('new-list-is-base').checked = false;
+  const bases = data.lists.map((list, i) => ({ list, i })).filter(({ list }) => list.isBase && list.type === 'shop');
+  const picker = document.getElementById('base-picker');
+  picker.style.display = isShop && bases.length ? 'block' : 'none';
+  const box = document.getElementById('base-picker-list');
+  box.innerHTML = '';
+  if (!isShop) return;
+  bases.forEach(({ list, i }) => {
+    const row = document.createElement('label');
+    row.className = 'base-pick-row';
+    row.innerHTML = `<input type="checkbox" data-idx="${i}"${i === preselectIdx ? ' checked' : ''}>
+      <span>${escHtml(list.emoji)} ${escHtml(list.name)}</span>
+      <span class="base-pick-count">${t('itemsCount')(list.items.length)}</span>`;
+    box.appendChild(row);
+  });
 }
 
 function buildEmojiRow() {
@@ -1407,11 +1481,10 @@ function buildEmojiRow() {
   });
 }
 
-function openNewListModal() {
-  selectedType = 'shop';
-  document.getElementById('type-shop').classList.add('selected');
-  document.getElementById('type-tasks').classList.remove('selected');
-  buildEmojiRow();
+function openNewListModal(preselectBaseIdx) {
+  document.getElementById('new-list-is-base').checked = false;
+  selectType('shop');
+  if (preselectBaseIdx !== undefined) renderBasePicker(preselectBaseIdx);
   document.getElementById('new-list-name').value = '';
   document.getElementById('new-list-modal').classList.add('open');
   setTimeout(() => document.getElementById('new-list-name').focus(), 100);
@@ -1426,22 +1499,51 @@ function createList() {
   if (!name) { document.getElementById('new-list-name').focus(); return; }
   const color = COLORS[data.lists.length % COLORS.length];
   document.getElementById('new-list-modal').classList.remove('open');
-  const finishCreate = async (withTemplate) => {
-    const items = (withTemplate && data.template.length > 0)
-      ? data.template.map(t => ({ text: t, done: false }))
-      : [];
-    const listObj = { name, emoji: selectedEmoji, color, type: selectedType, items };
-    if (selectedType === 'stocks') listObj.stockMode = selectedStockMode;
-    data.lists.push(listObj);
-    await save();
-    renderHome();
-    openList(data.lists.length - 1);
-  };
-  if (selectedType === 'shop' && data.template.length > 0) {
-    showConfirm(t('attachTemplate'), finishCreate);
-  } else {
-    finishCreate(false);
+  // איחוד הפריטים מכל רשימות הבסיס שנבחרו; פריט שמופיע בכמה בסיסים נכנס פעם אחת
+  const items = [];
+  const seen = new Set();
+  if (selectedType === 'shop') {
+    document.querySelectorAll('#base-picker-list input:checked').forEach(cb => {
+      (data.lists[+cb.dataset.idx]?.items || []).forEach(it => {
+        const key = (it.text || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        items.push({ ...JSON.parse(JSON.stringify(it)), done: false });
+      });
+    });
   }
+  const listObj = { name, emoji: selectedEmoji, color, type: selectedType, items };
+  if (selectedType === 'stocks') listObj.stockMode = selectedStockMode;
+  if (selectedType === 'shop' && document.getElementById('new-list-is-base').checked) listObj.isBase = true;
+  data.lists.push(listObj);
+  save();
+  renderHome();
+  openList(data.lists.length - 1);
+}
+
+function createFromCurrentBase() {
+  const idx = currentListIdx;
+  goHome();
+  openNewListModal(idx);
+}
+
+// מעבר בין רשימה רגילה מסוג פריטים לרשימת בסיס (להעתקה בלבד) ובחזרה
+function toggleBaseFlag() {
+  const idx = currentListIdx;
+  const list = data.lists[idx];
+  if (!list || list.type !== 'shop') return;
+  showConfirm(t(list.isBase ? 'confirmUnmarkBase' : 'confirmMarkBase'), yes => {
+    if (!yes) return;
+    if (list.isBase) {
+      delete list.isBase;
+    } else {
+      list.isBase = true;
+      list.items.forEach(it => { it.done = false; });
+    }
+    save();
+    showInfoToast(t(list.isBase ? 'baseMarked' : 'baseUnmarked'));
+    if (currentListIdx === idx) openList(idx);
+  });
 }
 
 // ── List detail ───────────────────────────────────────────────────────────
@@ -1455,7 +1557,14 @@ function openList(idx) {
 
   document.getElementById('detail-icon').textContent  = list.emoji;
   document.getElementById('detail-title').textContent = list.name;
+  const baseBtn = document.getElementById('base-toggle-btn');
+  baseBtn.style.display = list.type === 'shop' ? 'flex' : 'none';
+  baseBtn.style.opacity = list.isBase ? '1' : '.55';
+  baseBtn.title = t(list.isBase ? 'unmarkBaseTitle' : 'markBaseTitle');
+  document.getElementById('base-hint').style.display = list.isBase ? 'flex' : 'none';
+
   document.getElementById('detail-header').style.background =
+    list.isBase ? 'linear-gradient(135deg,#8e44ad,#6c3483)' :
     isTask   ? 'linear-gradient(135deg,#27ae60,#1e8449)' :
     isLinks  ? 'linear-gradient(135deg,#e67e22,#ca6f1e)' :
     isStocks ? 'linear-gradient(135deg,#16a085,#1a7a64)' :
@@ -1645,14 +1754,15 @@ function makeNotesPanel(i, item) {
 }
 
 function renderShopRow(container, i, item) {
+  const isBase = !!data.lists[currentListIdx].isBase;
   const wrapper = document.createElement('div');
   wrapper.style = 'background:#fff;border-radius:10px;margin-bottom:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)';
   const row = document.createElement('div');
   row.className = 'item-row';
   row.style = 'margin-bottom:0';
   row.innerHTML = `
-    <div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>
-    <span class="item-text ${item.done?'done':''}">${item.text}</span>
+    ${isBase ? '<span style="font-size:15px">⭐</span>' : `<div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>`}
+    <span class="item-text ${item.done && !isBase?'done':''}">${item.text}</span>
     <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
   row.appendChild(makeSearchBtn(item.text));
   const { noteBtn, panel } = makeNotesPanel(i, item);
@@ -2330,67 +2440,6 @@ function startEditText(i, span) {
   });
 }
 
-// ── Template ──────────────────────────────────────────────────────────────
-function openTemplate() {
-  document.getElementById('new-template-input').value = '';
-  renderTemplateItems();
-  showScreen('screen-template');
-}
-
-function renderTemplateItems() {
-  const container = document.getElementById('template-items-list');
-  container.innerHTML = '';
-  if (!data.template.length) {
-    container.innerHTML = `<div class="empty-msg">
-      <span class="big">⭐</span>${t('templateEmpty')}
-    </div>`;
-    return;
-  }
-  data.template.forEach((text, i) => {
-    const row = document.createElement('div');
-    row.className = 'item-row';
-    row.innerHTML = `
-      <span style="font-size:16px">⭐</span>
-      <span class="item-text">${text}</span>
-      <button class="card-action-btn edit-tpl-btn">✎</button>
-      <button class="item-del" onclick="deleteTemplateItem(${i})">✕</button>`;
-    const span = row.querySelector('.item-text');
-    row.querySelector('.edit-tpl-btn').addEventListener('click', () => startEditTemplate(i, span));
-    container.appendChild(row);
-  });
-}
-
-function addTemplateItem() {
-  const input = document.getElementById('new-template-input');
-  const text  = input.value.trim();
-  if (!text) return;
-  data.template.push(text);
-  save(); input.value = ''; renderTemplateItems(); input.focus();
-}
-
-function deleteTemplateItem(i) {
-  data.template.splice(i, 1);
-  save(); renderTemplateItems();
-}
-
-function startEditTemplate(i, span) {
-  const input = document.createElement('input');
-  input.className = 'item-edit-input';
-  input.value = data.template[i];
-  span.replaceWith(input);
-  input.focus(); input.select();
-  function commit() {
-    const val = input.value.trim();
-    if (val) data.template[i] = val;
-    save(); renderTemplateItems();
-  }
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
-    if (e.key === 'Escape') { save(); renderTemplateItems(); }
-  });
-}
-
 // ── Admin ─────────────────────────────────────────────────────────────────
 function openAdmin() {
   renderAdminUsers();
@@ -2579,7 +2628,8 @@ function shareListWhatsapp() {
     const text = encodeURIComponent(lines.join('\n'));
     location.href = `https://wa.me/?text=${text}`;
   };
-  showConfirm(t('includeDone'), doShare);
+  if (list.isBase) doShare(true);
+  else showConfirm(t('includeDone'), doShare);
 }
 
 // הפעלה ראשונית של השפה - רק כאן, אחרי שכל המשתנים בקובץ כבר הוגדרו
@@ -2590,11 +2640,10 @@ applyStaticI18n();
 Object.assign(window, {
   toggleLanguage,
   openNewListModal, createList, selectType, selectStockMode, editStockItem,
-  openList, goHome, openTemplate,
+  openList, goHome, createFromCurrentBase, toggleBaseFlag,
   addItem, addTask, addLink, addStock, addReminder, editReminderItem, aiAnalyze, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
-  addTemplateItem, deleteTemplateItem, startEditTemplate,
   closeListMenu, renameList, duplicateList, deleteList, closeRenameModal,
   loginWithGoogle, logout, shareListWhatsapp,
   openAdmin, addAllowedUser, toggleUserActive, removeAllowedUser, copyNtfyTopic,
