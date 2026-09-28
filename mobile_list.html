@@ -364,7 +364,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.2</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.3</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -661,7 +661,7 @@ const I18N = {
     renameTitle: 'שינוי שם רשימה', newNamePh: 'שם חדש...', saveBtn: 'שמור', cancelBtn: 'ביטול',
     yes: 'כן', no: 'לא', addBtn: 'הוסף',
     copySuffix: ' (עותק)', confirmDeleteList: name => `למחוק את הרשימה "${name}"?`,
-    renamePrompt: 'שם חדש לרשימה:',
+    renamePrompt: 'שם חדש לרשימה:', errNameExists: name => `כבר קיימת רשימה בשם "${name}". בחר שם אחר.`,
     navHome: 'בית', navArchive: 'ארכיון', navSettings: 'הגדרות',
     settingsTitle: '⚙️ הגדרות', allowedUsersTitle: 'משתמשים מורשים', addEmailPh: 'הוסף מייל...',
     archiveTitle: '🗑 ארכיון', archiveHint: 'רשימות שנמחקו נשמרות כאן לחודש, ואז נמחקות לצמיתות',
@@ -740,7 +740,7 @@ const I18N = {
     renameTitle: 'Rename list', newNamePh: 'New name...', saveBtn: 'Save', cancelBtn: 'Cancel',
     yes: 'Yes', no: 'No', addBtn: 'Add',
     copySuffix: ' (copy)', confirmDeleteList: name => `Delete the list "${name}"?`,
-    renamePrompt: 'New list name:',
+    renamePrompt: 'New list name:', errNameExists: name => `A list named "${name}" already exists. Choose another name.`,
     navHome: 'Home', navArchive: 'Archive', navSettings: 'Settings',
     settingsTitle: '⚙️ Settings', allowedUsersTitle: 'Approved users', addEmailPh: 'Add email...',
     archiveTitle: '🗑 Archive', archiveHint: 'Deleted lists are kept here for a month, then deleted permanently',
@@ -900,7 +900,7 @@ function migrateTemplate() {
   delete data.template;
   if (Array.isArray(old) && old.length) {
     data.lists.push({
-      name: t('baseDefaultName'), emoji: '🛒', color: COLORS[data.lists.length % COLORS.length],
+      name: uniqueListName(t('baseDefaultName')), emoji: '🛒', color: COLORS[data.lists.length % COLORS.length],
       type: 'shop', isBase: true, items: old.map(text => ({ text, done: false }))
     });
   }
@@ -1088,6 +1088,19 @@ function renderHome() {
   }
 }
 
+// שמות רשימות חייבים להיות ייחודיים (בלי הבדל רווחים/אותיות גדולות)
+function listNameTaken(name, exceptIdx = -1) {
+  const key = name.trim().toLowerCase();
+  return data.lists.some((l, i) => i !== exceptIdx && (l.name || '').trim().toLowerCase() === key);
+}
+// לרשימה שמגיעה מבחוץ (inbox / ארכיון) - מוסיפים (2), (3)... במקום לחסום
+function uniqueListName(name) {
+  if (!listNameTaken(name)) return name;
+  let n = 2;
+  while (listNameTaken(`${name} (${n})`)) n++;
+  return `${name} (${n})`;
+}
+
 function renameList(idx) {
   const input = document.getElementById('rename-input');
   input.value = data.lists[idx].name;
@@ -1095,6 +1108,7 @@ function renameList(idx) {
   setTimeout(() => input.focus(), 100);
   document.getElementById('rename-confirm-btn').onclick = () => {
     const val = input.value.trim();
+    if (val && listNameTaken(val, idx)) { alert(t('errNameExists')(val)); input.focus(); return; }
     if (val) { data.lists[idx].name = val; save(); renderHome(); }
     closeRenameModal();
   };
@@ -1129,6 +1143,7 @@ function duplicateList(idx) {
   setTimeout(() => { input.focus(); input.select(); }, 100);
   document.getElementById('rename-confirm-btn').onclick = () => {
     const val = input.value.trim();
+    if (val && listNameTaken(val)) { alert(t('errNameExists')(val)); input.focus(); return; }
     if (val) {
       const copy = JSON.parse(JSON.stringify(data.lists[idx]));
       copy.name = val;
@@ -1289,6 +1304,7 @@ function renderInbox() {
 
 async function acceptInbox(entry) {
   // קודם שומרים אצלי ורק אז מוחקים מה-inbox, כדי שהרשימה לא תלך לאיבוד בשגיאה
+  entry.list.name = uniqueListName(entry.list.name || '');
   data.lists.push(entry.list);
   inboxEntries = inboxEntries.filter(x => x.id !== entry.id);
   renderHome(); renderInbox();
@@ -1379,6 +1395,7 @@ function renderArchive() {
 function restoreArchivedList(i) {
   const entry = data.archive[i];
   data.archive.splice(i, 1);
+  entry.list.name = uniqueListName(entry.list.name || '');
   data.lists.push(entry.list);
   save(); renderArchive(); updateArchiveBadge();
 }
@@ -1398,6 +1415,7 @@ function showListMenu(idx, pos) {
     closeListMenu();
     const newName = prompt(t('renamePrompt'), data.lists[idx].name);
     if (newName && newName.trim()) {
+      if (listNameTaken(newName, idx)) { alert(t('errNameExists')(newName.trim())); return; }
       data.lists[idx].name = newName.trim();
       save(); renderHome();
     }
@@ -1497,6 +1515,7 @@ document.getElementById('new-list-modal').addEventListener('click', function(e) 
 function createList() {
   const name = document.getElementById('new-list-name').value.trim();
   if (!name) { document.getElementById('new-list-name').focus(); return; }
+  if (listNameTaken(name)) { alert(t('errNameExists')(name)); document.getElementById('new-list-name').focus(); return; }
   const color = COLORS[data.lists.length % COLORS.length];
   document.getElementById('new-list-modal').classList.remove('open');
   // איחוד הפריטים מכל רשימות הבסיס שנבחרו; פריט שמופיע בכמה בסיסים נכנס פעם אחת
@@ -1874,7 +1893,8 @@ const stockOpenCache = {};
 
 function updateStockEl(i, item, quote) {
   const recPrice = parseFloat(item.recPrice) || 0;
-  const { current, open, t } = quote; // "open" holds previous trading day's close (Finnhub pc)
+  // ts = זמן השער. לא לקרוא לו t - זה מסתיר את פונקציית התרגום t() ומפיל את הרינדור
+  const { current, open, t: ts } = quote; // "open" holds previous trading day's close (Finnhub pc)
   stockCache[i] = current;
   stockOpenCache[i] = open;
   const el = document.getElementById('sp-' + i);
@@ -1890,7 +1910,7 @@ function updateStockEl(i, item, quote) {
     const dayPct   = open ? ((current - open) / open * 100) : null;
     const dayColor = dayPct !== null ? (dayPct >= 0 ? '#27ae60' : '#e74c3c') : '#aaa';
     const daySign  = dayPct !== null && dayPct >= 0 ? '+' : '';
-    const curDate  = t ? new Date(t * 1000) : null;
+    const curDate  = ts ? new Date(ts * 1000) : null;
     const curDateLabel  = curDate ? ` (${fmtTradeDate(curDate)})` : '';
     const prevDateLabel = curDate ? ` (${fmtTradeDate(prevTradingDay(curDate))})` : '';
     // מציגים גם את שער הסגירה הקודם במפורש (עם התאריך שלו), כדי שיהיה ברור מול מה
