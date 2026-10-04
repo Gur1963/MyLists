@@ -364,7 +364,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.5</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.6</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -1779,7 +1779,7 @@ function makeLinkBtn(item) {
   return btn;
 }
 
-function makeNotesPanel(i, item, withLink = true) {
+function makeNotesPanel(i, item) {
   const hasNote = !!item.notes;
   const noteBtn = document.createElement('button');
   noteBtn.className = 'card-action-btn';
@@ -1802,29 +1802,11 @@ function makeNotesPanel(i, item, withLink = true) {
   });
   panel.appendChild(ta);
 
-  const linkBtn = makeLinkBtn(item);
-  if (withLink) {
-    const urlInput = document.createElement('input');
-    urlInput.type = 'url';
-    urlInput.value = item.url || '';
-    urlInput.placeholder = t('itemLinkPh');
-    urlInput.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid #cfd8e6;border-radius:8px;background:#f7f9fc;font-size:13px;color:#2f6fed;outline:none;font-family:inherit;padding:8px 10px;margin:4px 0 6px';
-    // כתובת מוצגת משמאל לימין, אבל כשהשדה ריק ה-placeholder נשאר בכיוון של השפה
-    urlInput.dir = urlInput.value ? 'ltr' : '';
-    urlInput.addEventListener('input', () => {
-      urlInput.dir = urlInput.value ? 'ltr' : '';
-      item.url = urlInput.value.trim();
-      linkBtn.style.display = safeUrl(item.url) ? '' : 'none';
-      save();
-    });
-    panel.appendChild(urlInput);
-  }
-
   noteBtn.addEventListener('click', () => {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     if (panel.style.display === 'block') ta.focus();
   });
-  return { noteBtn, panel, linkBtn };
+  return { noteBtn, panel };
 }
 
 function renderShopRow(container, i, item) {
@@ -1838,9 +1820,9 @@ function renderShopRow(container, i, item) {
     ${isBase ? '<span style="font-size:15px">⭐</span>' : `<div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>`}
     <span class="item-text ${item.done && !isBase?'done':''}">${item.text}</span>
     <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
-  const { noteBtn, panel, linkBtn } = makeNotesPanel(i, item);
-  row.appendChild(linkBtn);
+  row.appendChild(makeLinkBtn(item));
   row.appendChild(makeSearchBtn(item.text));
+  const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
   delBtn.className = 'item-del';
@@ -1870,7 +1852,7 @@ function renderTaskCard(container, i, item) {
       onclick="editDate(${i}, this)">${t('addDate')}</span>`;
   }
 
-  const { noteBtn, panel, linkBtn } = makeNotesPanel(i, item);
+  const { noteBtn, panel } = makeNotesPanel(i, item);
   card.innerHTML = `
     <div style="display:flex">
       <div style="width:5px;background:${item.done?'#ddd':pri.bg};border-radius:12px 0 0 12px;flex-shrink:0"></div>
@@ -1893,7 +1875,7 @@ function renderTaskCard(container, i, item) {
       </div>
     </div>`;
   container.appendChild(card);
-  card.querySelector(`#link-btn-task-${i}`).replaceWith(linkBtn);
+  card.querySelector(`#link-btn-task-${i}`).replaceWith(makeLinkBtn(item));
   card.querySelector(`#search-btn-task-${i}`).replaceWith(makeSearchBtn(item.text));
   card.querySelector(`#note-btn-task-${i}`).replaceWith(noteBtn);
   card.querySelector(`#note-panel-task-${i}`).replaceWith(panel);
@@ -2031,8 +2013,8 @@ function renderStockRow(container, i, item) {
     <span id="note-panel-stock-${i}"></span>`;
   container.appendChild(row);
   row.querySelector(`#search-btn-stock-${i}`).replaceWith(makeSearchBtn(item.ticker));
-  const { noteBtn: snb, panel: sp, linkBtn: slb } = makeNotesPanel(i, item);
-  row.querySelector(`#link-btn-stock-${i}`).replaceWith(slb);
+  const { noteBtn: snb, panel: sp } = makeNotesPanel(i, item);
+  row.querySelector(`#link-btn-stock-${i}`).replaceWith(makeLinkBtn(item));
   row.querySelector(`#note-btn-stock-${i}`).replaceWith(snb);
   row.querySelector(`#note-panel-stock-${i}`).replaceWith(sp);
 
@@ -2113,6 +2095,8 @@ function editStockItem(i) {
     const price   = prompt((isPortfolio ? t('buyPrice') : t('recPrice')) + ':', item.recPrice);
     const date    = prompt(t('promptDate'), item.recDate || '');
     const analyst = prompt(analystLabel + ':', item.analyst || '');
+    const url     = prompt(t('promptLink'), item.url || '');
+    if (url !== null) item.url = url.trim();
     item.ticker   = ticker.toUpperCase().trim();
     item.recPrice = parseFloat(price) || item.recPrice;
     item.recDate  = date || item.recDate;
@@ -2151,7 +2135,7 @@ function renderLinkRow(container, i, item) {
     </div>
     <button class="card-action-btn edit-link-btn">✎</button>`;
   row.appendChild(makeSearchBtn(item.text));
-  const { noteBtn, panel } = makeNotesPanel(i, item, false);
+  const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
   delBtn.className = 'item-del';
@@ -2510,20 +2494,43 @@ function handleTouchEnd(e) {
 }
 
 function startEditText(i, span) {
+  const item = data.lists[currentListIdx].items[i];
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:6px';
   const input = document.createElement('input');
   input.className = 'item-edit-input';
-  input.value = data.lists[currentListIdx].items[i].text;
-  span.replaceWith(input);
+  input.value = item.text;
+  const urlInput = document.createElement('input');
+  urlInput.className = 'item-edit-input';
+  urlInput.type = 'url';
+  urlInput.value = item.url || '';
+  urlInput.placeholder = t('itemLinkPh');
+  urlInput.style.cssText = 'font-size:12px;color:#2f6fed;border-bottom:1px solid #b9cdf0';
+  // כתובת מוצגת משמאל לימין, אבל כשהשדה ריק ה-placeholder נשאר בכיוון של השפה
+  urlInput.dir = urlInput.value ? 'ltr' : '';
+  urlInput.addEventListener('input', () => { urlInput.dir = urlInput.value ? 'ltr' : ''; });
+  wrap.append(input, urlInput);
+  span.replaceWith(wrap);
   input.focus(); input.select();
-  function commit() {
-    const val = input.value.trim();
-    if (val) data.lists[currentListIdx].items[i].text = val;
+  let finished = false;
+  function finish(apply) {
+    if (finished) return;
+    finished = true;
+    if (apply) {
+      const val = input.value.trim();
+      if (val) item.text = val;
+      const url = urlInput.value.trim();
+      if (url || item.url) item.url = url;
+    }
     save(); renderItems();
   }
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
-    if (e.key === 'Escape') { save(); renderItems(); }
+  // שומרים רק כשהפוקוס יוצא משני השדות, לא במעבר מהשם לקישור
+  wrap.addEventListener('focusout', () => {
+    setTimeout(() => { if (!wrap.contains(document.activeElement)) finish(true); }, 0);
+  });
+  wrap.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); finish(true); }
+    if (e.key === 'Escape') finish(false);
   });
 }
 
