@@ -153,8 +153,9 @@
   /* Add bar — shopping */
   .add-bar-simple {
     background: #fff; padding: 10px 12px;
-    display: flex; gap: 8px; border-bottom: 1px solid #eee;
+    display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #eee;
   }
+  .add-input.add-url-input { flex-basis: 100%; font-size: 12px; padding: 6px 11px; color: #2f6fed; }
 
   /* Add bar — tasks (two rows) */
   .add-bar-task {
@@ -364,7 +365,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.7</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.8</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -474,6 +475,8 @@
         <button class="add-btn" style="background:#4a90d9" onclick="addItem()">+</button>
         <input class="add-input" id="new-item-input" data-i18n-ph="addItemPh" placeholder="הוסף פריט..."
                onkeydown="if(event.key==='Enter') addItem()">
+        <input class="add-input add-url-input" id="new-item-url" type="url" data-i18n-ph="itemLinkPh" placeholder="🔗 קישור (אופציונלי)"
+               onkeydown="if(event.key==='Enter') addItem()">
       </div>
 
       <div class="add-bar-task" id="add-bar-stocks" style="display:none">
@@ -501,6 +504,10 @@
       <div class="add-bar-task" id="add-bar-task" style="display:none">
         <div class="add-bar-row">
           <input class="add-input" id="new-task-input" data-i18n-ph="taskNamePh" placeholder="שם המשימה..."
+                 onkeydown="if(event.key==='Enter') addTask()">
+        </div>
+        <div class="add-bar-row">
+          <input class="add-input add-url-input" id="new-task-url" type="url" data-i18n-ph="itemLinkPh" placeholder="🔗 קישור (אופציונלי)"
                  onkeydown="if(event.key==='Enter') addTask()">
         </div>
         <div class="add-bar-row" style="align-items:center">
@@ -2374,9 +2381,11 @@ function addReminder() {
 function addItem() {
   const input = document.getElementById('new-item-input');
   if (!input.value.trim()) return;
-  const { text, url } = splitTextUrl(input.value.trim());
+  const urlInput = document.getElementById('new-item-url');
+  const split = splitTextUrl(input.value.trim());
+  const text = split.text, url = urlInput.value.trim() || split.url;
   data.lists[currentListIdx].items.push(url ? { text, url, done: false } : { text, done: false });
-  save(); input.value = ''; renderItems(); input.focus();
+  save(); input.value = ''; urlInput.value = ''; renderItems(); input.focus();
 }
 
 // ── Task CRUD ─────────────────────────────────────────────────────────────
@@ -2390,7 +2399,10 @@ function setPri(p) {
 function addTask() {
   const input = document.getElementById('new-task-input');
   if (!input.value.trim()) return;
-  const { text, url } = splitTextUrl(input.value.trim());
+  const urlInput = document.getElementById('new-task-url');
+  const split = splitTextUrl(input.value.trim());
+  const text = split.text, url = urlInput.value.trim() || split.url;
+  urlInput.value = '';
   const date = document.getElementById('new-task-date').value;
   const task = { text, done: false, priority: newTaskPri, date: date||'' };
   if (url) task.url = url;
