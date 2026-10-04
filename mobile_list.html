@@ -364,7 +364,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.6</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.7</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -1779,6 +1779,22 @@ function makeLinkBtn(item) {
   return btn;
 }
 
+// שם הפריט ומתחתיו הקישור (אם יש), כמו ברשימת הפניות: לחיצה על השם או הקישור פותחת אותו
+function itemMainHtml(item, done, textStyle = '') {
+  const u = safeUrl(item.url);
+  return `<div class="item-main" style="flex:1;min-width:0${u ? ';cursor:pointer' : ''}">
+      <div class="item-text ${done ? 'done' : ''}" style="${textStyle}">${item.text}</div>
+      ${u ? `<div style="font-size:11px;color:#4a90d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.url)}</div>` : ''}
+    </div>`;
+}
+
+function bindItemLink(root, item) {
+  root.querySelector('.item-main').addEventListener('click', () => {
+    const u = safeUrl(item.url);
+    if (u) window.open(u, '_blank');
+  });
+}
+
 function makeNotesPanel(i, item) {
   const hasNote = !!item.notes;
   const noteBtn = document.createElement('button');
@@ -1818,9 +1834,9 @@ function renderShopRow(container, i, item) {
   row.style = 'margin-bottom:0';
   row.innerHTML = `
     ${isBase ? '<span style="font-size:15px">⭐</span>' : `<div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>`}
-    <span class="item-text ${item.done && !isBase?'done':''}">${item.text}</span>
+    ${itemMainHtml(item, item.done && !isBase)}
     <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
-  row.appendChild(makeLinkBtn(item));
+  bindItemLink(row, item);
   row.appendChild(makeSearchBtn(item.text));
   const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
@@ -1859,9 +1875,8 @@ function renderTaskCard(container, i, item) {
       <div style="flex:1">
         <div class="task-main">
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
-          <span class="item-text ${item.done?'done':''}" style="font-size:14px">${item.text}</span>
+          ${itemMainHtml(item, item.done, 'font-size:14px')}
           <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
-          <span id="link-btn-task-${i}"></span>
           <span id="search-btn-task-${i}"></span>
           <span id="note-btn-task-${i}"></span>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
@@ -1875,7 +1890,7 @@ function renderTaskCard(container, i, item) {
       </div>
     </div>`;
   container.appendChild(card);
-  card.querySelector(`#link-btn-task-${i}`).replaceWith(makeLinkBtn(item));
+  bindItemLink(card, item);
   card.querySelector(`#search-btn-task-${i}`).replaceWith(makeSearchBtn(item.text));
   card.querySelector(`#note-btn-task-${i}`).replaceWith(noteBtn);
   card.querySelector(`#note-panel-task-${i}`).replaceWith(panel);
