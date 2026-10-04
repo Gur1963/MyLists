@@ -365,7 +365,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.8</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.9</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -689,7 +689,7 @@ const I18N = {
     priNone: 'ללא', priLow: 'נמוכה', priMedium: 'בינונית', priHigh: 'גבוהה',
     editDateTitle: 'לחץ לעריכת תאריך', addDateTitle: 'הוסף תאריך', addDate: '+ תאריך',
     searchWebTitle: 'חפש ברשת', notesTitle: 'הערות', notesPh: 'הערות...',
-    openLinkTitle: 'פתח קישור', itemLinkPh: '🔗 קישור (אופציונלי)', promptLink: 'קישור (אופציונלי):',
+    openLinkTitle: 'פתח קישור', clearLinkTitle: 'נקה קישור',itemLinkPh: '🔗 קישור (אופציונלי)', promptLink: 'קישור (אופציונלי):',
     itemBought: 'הפריט סומן', itemDone: 'הפריט סומן כבוצע', itemDeleted: 'הפריט נמחק', undo: '↩ בטל',
     reminderTextPh: 'לדוגמה: תור לרופא עור', reminderLocationPh: 'מיקום (אופציונלי)',
     offsetsLabel: 'מתי להתריע (עד 3):', repeatLabel: 'חזרתיות:',
@@ -769,7 +769,7 @@ const I18N = {
     priNone: 'None', priLow: 'Low', priMedium: 'Medium', priHigh: 'High',
     editDateTitle: 'Tap to edit date', addDateTitle: 'Add date', addDate: '+ Date',
     searchWebTitle: 'Search the web', notesTitle: 'Notes', notesPh: 'Notes...',
-    openLinkTitle: 'Open link', itemLinkPh: '🔗 Link (optional)', promptLink: 'Link (optional):',
+    openLinkTitle: 'Open link', clearLinkTitle: 'Clear link',itemLinkPh: '🔗 Link (optional)', promptLink: 'Link (optional):',
     itemBought: 'Item checked', itemDone: 'Item marked done', itemDeleted: 'Item deleted', undo: '↩ Undo',
     reminderTextPh: 'e.g. Dermatologist appointment', reminderLocationPh: 'Location (optional)',
     offsetsLabel: 'When to remind (up to 3):', repeatLabel: 'Repeat:',
@@ -2536,7 +2536,24 @@ function startEditText(i, span) {
   // כתובת מוצגת משמאל לימין, אבל כשהשדה ריק ה-placeholder נשאר בכיוון של השפה
   urlInput.dir = urlInput.value ? 'ltr' : '';
   urlInput.addEventListener('input', () => { urlInput.dir = urlInput.value ? 'ltr' : ''; });
-  wrap.append(input, urlInput);
+  // ✕ מנקה את הקישור (למחיקה או להחלפה) בלי למחוק כתובת ארוכה תו-תו
+  const urlRow = document.createElement('div');
+  urlRow.style.cssText = 'display:flex;align-items:center;gap:6px';
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'search-clear-btn';
+  clearBtn.title = t('clearLinkTitle');
+  clearBtn.textContent = '✕';
+  clearBtn.style.cssText = 'width:26px;height:26px;font-size:12px';
+  // מונעים מהלחיצה להוציא את הפוקוס מהשדות, אחרת העריכה תישמר ותיסגר לפני הניקוי
+  clearBtn.addEventListener('mousedown', e => e.preventDefault());
+  clearBtn.addEventListener('click', () => {
+    urlInput.value = '';
+    urlInput.dir = '';
+    urlInput.focus();
+  });
+  urlRow.append(urlInput, clearBtn);
+  wrap.append(input, urlRow);
   span.replaceWith(wrap);
   input.focus(); input.select();
   let finished = false;
