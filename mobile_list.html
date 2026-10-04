@@ -364,7 +364,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.3</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.4</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -682,6 +682,7 @@ const I18N = {
     priNone: 'ללא', priLow: 'נמוכה', priMedium: 'בינונית', priHigh: 'גבוהה',
     editDateTitle: 'לחץ לעריכת תאריך', addDateTitle: 'הוסף תאריך', addDate: '+ תאריך',
     searchWebTitle: 'חפש ברשת', notesTitle: 'הערות', notesPh: 'הערות...',
+    openLinkTitle: 'פתח קישור', itemLinkPh: '🔗 קישור (אופציונלי)', promptLink: 'קישור (אופציונלי):',
     itemBought: 'הפריט סומן', itemDone: 'הפריט סומן כבוצע', itemDeleted: 'הפריט נמחק', undo: '↩ בטל',
     reminderTextPh: 'לדוגמה: תור לרופא עור', reminderLocationPh: 'מיקום (אופציונלי)',
     offsetsLabel: 'מתי להתריע (עד 3):', repeatLabel: 'חזרתיות:',
@@ -761,6 +762,7 @@ const I18N = {
     priNone: 'None', priLow: 'Low', priMedium: 'Medium', priHigh: 'High',
     editDateTitle: 'Tap to edit date', addDateTitle: 'Add date', addDate: '+ Date',
     searchWebTitle: 'Search the web', notesTitle: 'Notes', notesPh: 'Notes...',
+    openLinkTitle: 'Open link', itemLinkPh: '🔗 Link (optional)', promptLink: 'Link (optional):',
     itemBought: 'Item checked', itemDone: 'Item marked done', itemDeleted: 'Item deleted', undo: '↩ Undo',
     reminderTextPh: 'e.g. Dermatologist appointment', reminderLocationPh: 'Location (optional)',
     offsetsLabel: 'When to remind (up to 3):', repeatLabel: 'Repeat:',
@@ -1742,7 +1744,42 @@ function makeSearchBtn(query) {
   return btn;
 }
 
-function makeNotesPanel(i, item) {
+// קישור של פריט: בלי פרוטוקול מוסיפים https, וכל מה שאינו http/https לא נפתח
+// (רשימה יכולה להגיע ממשתמש אחר)
+function safeUrl(url) {
+  let u = String(url || '').trim();
+  if (!u) return '';
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u) && !/^(javascript|data|vbscript):/i.test(u)) u = 'https://' + u;
+  return /^https?:\/\//i.test(u) ? u : '';
+}
+
+// מפריד קישור שהודבק בתוך טקסט של פריט חדש; אם הודבק רק קישור - שם הפריט הוא שם האתר
+function splitTextUrl(text) {
+  const m = text.match(/(https?:\/\/\S+|www\.\S+)/i);
+  if (!m) return { text, url: '' };
+  let rest = text.replace(m[0], '').replace(/\s+/g, ' ').trim();
+  if (!rest) {
+    try { rest = new URL(safeUrl(m[0])).hostname.replace(/^www\./, ''); } catch(e) { rest = m[0]; }
+  }
+  return { text: rest, url: m[0] };
+}
+
+// כפתור 🔗 שמוצג רק כשלפריט יש קישור
+function makeLinkBtn(item) {
+  const btn = document.createElement('button');
+  btn.className = 'card-action-btn';
+  btn.title = t('openLinkTitle');
+  btn.textContent = '🔗';
+  btn.style.display = safeUrl(item.url) ? '' : 'none';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const u = safeUrl(item.url);
+    if (u) window.open(u, '_blank');
+  });
+  return btn;
+}
+
+function makeNotesPanel(i, item, withLink = true) {
   const hasNote = !!item.notes;
   const noteBtn = document.createElement('button');
   noteBtn.className = 'card-action-btn';
@@ -1765,11 +1802,27 @@ function makeNotesPanel(i, item) {
   });
   panel.appendChild(ta);
 
+  const linkBtn = makeLinkBtn(item);
+  if (withLink) {
+    const urlInput = document.createElement('input');
+    urlInput.type = 'url';
+    urlInput.dir = 'ltr';
+    urlInput.value = item.url || '';
+    urlInput.placeholder = t('itemLinkPh');
+    urlInput.style.cssText = 'width:100%;border:none;border-top:1px dashed #eee;background:transparent;font-size:12px;color:#4a90d9;outline:none;font-family:inherit;padding:6px 0';
+    urlInput.addEventListener('input', () => {
+      item.url = urlInput.value.trim();
+      linkBtn.style.display = safeUrl(item.url) ? '' : 'none';
+      save();
+    });
+    panel.appendChild(urlInput);
+  }
+
   noteBtn.addEventListener('click', () => {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     if (panel.style.display === 'block') ta.focus();
   });
-  return { noteBtn, panel };
+  return { noteBtn, panel, linkBtn };
 }
 
 function renderShopRow(container, i, item) {
@@ -1783,8 +1836,9 @@ function renderShopRow(container, i, item) {
     ${isBase ? '<span style="font-size:15px">⭐</span>' : `<div class="item-check ${item.done?'checked':''}" onclick="toggleItem(${i})"></div>`}
     <span class="item-text ${item.done && !isBase?'done':''}">${item.text}</span>
     <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>`;
+  const { noteBtn, panel, linkBtn } = makeNotesPanel(i, item);
+  row.appendChild(linkBtn);
   row.appendChild(makeSearchBtn(item.text));
-  const { noteBtn, panel } = makeNotesPanel(i, item);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
   delBtn.className = 'item-del';
@@ -1814,7 +1868,7 @@ function renderTaskCard(container, i, item) {
       onclick="editDate(${i}, this)">${t('addDate')}</span>`;
   }
 
-  const { noteBtn, panel } = makeNotesPanel(i, item);
+  const { noteBtn, panel, linkBtn } = makeNotesPanel(i, item);
   card.innerHTML = `
     <div style="display:flex">
       <div style="width:5px;background:${item.done?'#ddd':pri.bg};border-radius:12px 0 0 12px;flex-shrink:0"></div>
@@ -1823,6 +1877,7 @@ function renderTaskCard(container, i, item) {
           <div class="item-check ${item.done?'checked':''}" style="border-color:${pri.fg}" onclick="toggleItem(${i})"></div>
           <span class="item-text ${item.done?'done':''}" style="font-size:14px">${item.text}</span>
           <button class="card-action-btn" onclick="startEditText(${i}, this.previousElementSibling)">✎</button>
+          <span id="link-btn-task-${i}"></span>
           <span id="search-btn-task-${i}"></span>
           <span id="note-btn-task-${i}"></span>
           <button class="item-del" onclick="deleteItem(${i})">✕</button>
@@ -1836,6 +1891,7 @@ function renderTaskCard(container, i, item) {
       </div>
     </div>`;
   container.appendChild(card);
+  card.querySelector(`#link-btn-task-${i}`).replaceWith(linkBtn);
   card.querySelector(`#search-btn-task-${i}`).replaceWith(makeSearchBtn(item.text));
   card.querySelector(`#note-btn-task-${i}`).replaceWith(noteBtn);
   card.querySelector(`#note-panel-task-${i}`).replaceWith(panel);
@@ -1963,6 +2019,7 @@ function renderStockRow(container, i, item) {
       </div>
       <button onclick="aiAnalyze(${i})" id="ai-btn-${i}" style="border:none;background:#e8f2fd;color:#4a90d9;border-radius:8px;padding:5px 8px;font-size:14px;cursor:pointer;flex-shrink:0">🤖</button>
       <button class="card-action-btn" onclick="editStockItem(${i})">✎</button>
+      <span id="link-btn-stock-${i}"></span>
       <span id="search-btn-stock-${i}"></span>
       <span id="note-btn-stock-${i}"></span>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
@@ -1972,7 +2029,8 @@ function renderStockRow(container, i, item) {
     <span id="note-panel-stock-${i}"></span>`;
   container.appendChild(row);
   row.querySelector(`#search-btn-stock-${i}`).replaceWith(makeSearchBtn(item.ticker));
-  const { noteBtn: snb, panel: sp } = makeNotesPanel(i, item);
+  const { noteBtn: snb, panel: sp, linkBtn: slb } = makeNotesPanel(i, item);
+  row.querySelector(`#link-btn-stock-${i}`).replaceWith(slb);
   row.querySelector(`#note-btn-stock-${i}`).replaceWith(snb);
   row.querySelector(`#note-panel-stock-${i}`).replaceWith(sp);
 
@@ -2091,7 +2149,7 @@ function renderLinkRow(container, i, item) {
     </div>
     <button class="card-action-btn edit-link-btn">✎</button>`;
   row.appendChild(makeSearchBtn(item.text));
-  const { noteBtn, panel } = makeNotesPanel(i, item);
+  const { noteBtn, panel } = makeNotesPanel(i, item, false);
   row.appendChild(noteBtn);
   const delBtn = document.createElement('button');
   delBtn.className = 'item-del';
@@ -2104,7 +2162,8 @@ function renderLinkRow(container, i, item) {
   });
   // רק לחיצה על השם או הקישור פותחת אותו - לא לחיצה על הכפתורים שבשורה
   row.querySelector('.link-open-area').addEventListener('click', () => {
-    if (item.url) window.open(item.url, '_blank');
+    const u = safeUrl(item.url);
+    if (u) window.open(u, '_blank');
   });
   wrapper.appendChild(row);
   wrapper.appendChild(panel);
@@ -2232,9 +2291,11 @@ function renderReminderRow(container, i, item) {
         <div style="font-size:10px;color:#aaa;margin-top:2px">⏰ ${offsetsText}</div>
         ${repeatText ? `<div style="font-size:10px;color:#8e44ad;margin-top:2px">🔁 ${repeatText}</div>` : ''}
       </div>
+      <span id="link-btn-rem-${i}"></span>
       <button class="card-action-btn" onclick="editReminderItem(${i})">✎</button>
       <button class="item-del" onclick="deleteItem(${i})">✕</button>
     </div>`;
+  row.querySelector(`#link-btn-rem-${i}`).replaceWith(makeLinkBtn(item));
   container.appendChild(row);
 }
 
@@ -2245,6 +2306,7 @@ function editReminderItem(i) {
     const text = prompt(t('promptText'), item.text);
     if (text === null || !text.trim()) return;
     const location = prompt(t('promptLocation'), item.location || '');
+    const url = prompt(t('promptLink'), item.url || '');
     const date = prompt(t('promptDate'), item.date || '');
     const time = prompt(t('promptTime'), item.time || '');
 
@@ -2274,6 +2336,7 @@ function editReminderItem(i) {
 
     item.text     = text.trim();
     item.location = (location || '').trim();
+    if (url !== null) item.url = url.trim();
     item.date     = date || item.date;
     item.time     = time || item.time;
     item.reminderOffsets = reminderOffsets;
@@ -2309,9 +2372,9 @@ function addReminder() {
 // ── Shopping CRUD ─────────────────────────────────────────────────────────
 function addItem() {
   const input = document.getElementById('new-item-input');
-  const text  = input.value.trim();
-  if (!text) return;
-  data.lists[currentListIdx].items.push({ text, done: false });
+  if (!input.value.trim()) return;
+  const { text, url } = splitTextUrl(input.value.trim());
+  data.lists[currentListIdx].items.push(url ? { text, url, done: false } : { text, done: false });
   save(); input.value = ''; renderItems(); input.focus();
 }
 
@@ -2325,10 +2388,12 @@ function setPri(p) {
 
 function addTask() {
   const input = document.getElementById('new-task-input');
-  const text  = input.value.trim();
-  if (!text) return;
+  if (!input.value.trim()) return;
+  const { text, url } = splitTextUrl(input.value.trim());
   const date = document.getElementById('new-task-date').value;
-  data.lists[currentListIdx].items.push({ text, done: false, priority: newTaskPri, date: date||'' });
+  const task = { text, done: false, priority: newTaskPri, date: date||'' };
+  if (url) task.url = url;
+  data.lists[currentListIdx].items.push(task);
   save();
   input.value = '';
   document.getElementById('new-task-date').value = '';
@@ -2641,9 +2706,9 @@ function shareListWhatsapp() {
         lines.push(`• ${item.ticker} | ${isPortfolio?t('shareBuy'):t('shareRec')}: $${rec.toFixed(2)} | ${t('current')}: ${cur?'$'+cur.toFixed(2):'?'} (${sign}${pct}%) | ${item.analyst||''} ${item.recDate||''}`);
       }
       else if (list.type === 'reminders') {
-        lines.push(`🔔 ${item.text}${item.location ? ' | 📍 ' + item.location : ''} | ${item.date||''} ${item.time||''}`);
+        lines.push(`🔔 ${item.text}${item.location ? ' | 📍 ' + item.location : ''} | ${item.date||''} ${item.time||''}${item.url ? '\n  ' + item.url : ''}`);
       }
-      else lines.push(`${item.done ? '✓' : '•'} ${item.text}`);
+      else lines.push(`${item.done ? '✓' : '•'} ${item.text}${item.url ? '\n  ' + item.url : ''}`);
     });
     const text = encodeURIComponent(lines.join('\n'));
     location.href = `https://wa.me/?text=${text}`;
