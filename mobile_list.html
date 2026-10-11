@@ -365,7 +365,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.9</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.10</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -462,6 +462,7 @@
         <span class="detail-icon-big" id="detail-icon"></span>
         <span class="detail-title" id="detail-title"></span>
         <button class="back-btn" id="base-toggle-btn" onclick="toggleBaseFlag()" style="font-size:17px">⭐</button>
+        <button class="back-btn" id="convert-links-btn" onclick="convertLinksToItems()" data-i18n-title="convertToItemsTitle" title="הפוך לרשימת פריטים" style="font-size:17px;display:none">📝</button>
         <button class="back-btn" onclick="shareListWhatsapp()" data-i18n-title="shareWhatsappTitle" title="שלח ב-WhatsApp" style="margin-inline-start:auto;font-size:20px">📤</button>
       </div>
 
@@ -682,6 +683,9 @@ const I18N = {
     confirmMarkBase: 'להפוך לרשימת בסיס? הרשימה תשמש להעתקה בלבד, וסימוני "בוצע" יאופסו.',
     confirmUnmarkBase: 'להחזיר לרשימה רגילה?',
     baseMarked: 'הרשימה סומנה כרשימת בסיס ⭐', baseUnmarked: 'הרשימה הוחזרה לרשימה רגילה',
+    convertToItemsTitle: 'הפוך לרשימת פריטים',
+    confirmConvertToItems: 'להפוך את רשימת ההפניות לרשימת פריטים? השמות, הקישורים וההערות נשמרים.',
+    convertedToItems: 'הרשימה הפכה לרשימת פריטים 📝',
     shareWhatsappTitle: 'שלח ב-WhatsApp', addItemPh: 'הוסף פריט...',
     pricePh: 'שער', analystPh: 'אנליסט', notePh: 'הערה (אופציונלי)',
     linkNamePh: 'שם ההפניה...', linkUrlPh: 'קישור (https://...)', linkEditNamePh: 'שם', linkEditUrlPh: 'קישור',
@@ -762,6 +766,9 @@ const I18N = {
     confirmMarkBase: 'Turn into a base list? It will be used for copying only, and "done" marks will be cleared.',
     confirmUnmarkBase: 'Turn back into a regular list?',
     baseMarked: 'The list is now a base list ⭐', baseUnmarked: 'The list is a regular list again',
+    convertToItemsTitle: 'Turn into an items list',
+    confirmConvertToItems: 'Turn this links list into an items list? Names, links and notes are kept.',
+    convertedToItems: 'The list is now an items list 📝',
     shareWhatsappTitle: 'Send via WhatsApp', addItemPh: 'Add item...',
     pricePh: 'Price', analystPh: 'Analyst', notePh: 'Note (optional)',
     linkNamePh: 'Link name...', linkUrlPh: 'URL (https://...)', linkEditNamePh: 'Name', linkEditUrlPh: 'URL',
@@ -1574,6 +1581,20 @@ function toggleBaseFlag() {
   });
 }
 
+// פריט הפניה ופריט רגיל בנויים אותו דבר (text / url / done / notes), לכן מספיק להחליף את סוג הרשימה
+function convertLinksToItems() {
+  const idx = currentListIdx;
+  const list = data.lists[idx];
+  if (!list || list.type !== 'links') return;
+  showConfirm(t('confirmConvertToItems'), yes => {
+    if (!yes) return;
+    list.type = 'shop';
+    save();
+    showInfoToast(t('convertedToItems'));
+    if (currentListIdx === idx) openList(idx);
+  });
+}
+
 // ── List detail ───────────────────────────────────────────────────────────
 function openList(idx) {
   currentListIdx = idx;
@@ -1590,6 +1611,7 @@ function openList(idx) {
   baseBtn.style.opacity = list.isBase ? '1' : '.55';
   baseBtn.title = t(list.isBase ? 'unmarkBaseTitle' : 'markBaseTitle');
   document.getElementById('base-hint').style.display = list.isBase ? 'flex' : 'none';
+  document.getElementById('convert-links-btn').style.display = isLinks ? 'flex' : 'none';
 
   document.getElementById('detail-header').style.background =
     list.isBase ? 'linear-gradient(135deg,#8e44ad,#6c3483)' :
