@@ -365,7 +365,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.11</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.12</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -893,7 +893,8 @@ async function loadFromCloud() {
       }
     }
     if (!data.lists) data.lists = [];
-    if (migrateTemplate()) save();
+    const fixedIcons = fixConvertedListIcons();
+    if (migrateTemplate() || fixedIcons) save();
     purgeExpiredArchive();
   } catch(e) {
     console.error("שגיאת טעינה:", e);
@@ -921,6 +922,16 @@ function migrateTemplate() {
     });
   }
   return true;
+}
+
+// רשימות הפניות שהומרו לרשימת פריטים לפני v1.0.12 נשארו עם סמל השרשרת - מחליפים לעגלה.
+// מחזיר true אם צריך לשמור.
+function fixConvertedListIcons() {
+  let changed = false;
+  data.lists.forEach(l => {
+    if (l.type === 'shop' && l.emoji === EMOJIS_LINKS[0]) { l.emoji = EMOJIS_SHOP[0]; changed = true; }
+  });
+  return changed;
 }
 
 function showLoginScreen() {
@@ -1589,6 +1600,7 @@ function convertLinksToItems() {
   showConfirm(t('confirmConvertToItems'), yes => {
     if (!yes) return;
     list.type = 'shop';
+    if (list.emoji === EMOJIS_LINKS[0]) list.emoji = EMOJIS_SHOP[0];
     save();
     showInfoToast(t('convertedToItems'));
     if (currentListIdx === idx) openList(idx);
