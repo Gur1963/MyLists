@@ -370,7 +370,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.1.1</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.1.2</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -744,6 +744,7 @@ const I18N = {
     shareStopped: name => `השיתוף של "${name}" הופסק. הרשימה נשארה אצלך.`,
     sharedRemoved: name => `הרשימה "${name}" כבר לא משותפת איתך`,
     sharedLeft: name => `עזבת את "${name}"`,
+    sharedAllLeft: name => `כל המשתתפים עזבו את "${name}" - היא חזרה להיות רשימה אישית`,
     confirmStopShare: name => `להפסיק לשתף את "${name}"? היא תישאר רק אצלך ותיעלם אצל שאר המשתתפים.`,
     confirmLeave: name => `לעזוב את הרשימה המשותפת "${name}"? היא תיעלם אצלך ותישאר אצל שאר המשתתפים.`,
     confirmDeleteShared: name => `למחוק את "${name}"? הרשימה משותפת - היא תימחק אצל כל המשתתפים.`,
@@ -844,6 +845,7 @@ const I18N = {
     shareStopped: name => `Stopped sharing "${name}". The list stays with you.`,
     sharedRemoved: name => `"${name}" is no longer shared with you`,
     sharedLeft: name => `You left "${name}"`,
+    sharedAllLeft: name => `All members left "${name}" - it is a personal list again`,
     confirmStopShare: name => `Stop sharing "${name}"? It will stay only with you and disappear for the other members.`,
     confirmLeave: name => `Leave the shared list "${name}"? It will disappear for you and stay with the other members.`,
     confirmDeleteShared: name => `Delete "${name}"? This list is shared - it will be deleted for all members.`,
@@ -1611,6 +1613,8 @@ function startSharedSync() {
         const res = upsertShared(ch.doc.id, ch.doc.data());
         if (res.content) changed.add(ch.doc.id);
         if (res.structural) reopen = true;
+        const st = sharedState.get(ch.doc.id);
+        if (!st.creating && st.meta.ownerEmail === myEmail() && st.meta.members.length <= 1) revertToPersonal(ch.doc.id);
       });
     refreshSharedUI(changed, reopen);
   }, e => console.error('שגיאת סנכרון רשימות משותפות:', e));
@@ -1675,7 +1679,8 @@ function refreshSharedUI(changed, reopen) {
   if (active === 'screen-home') renderHome();
   if (active !== 'screen-detail') return;
   const list = data.lists[currentListIdx];
-  if (!list || !list._sid) return;
+  if (!list) return;
+  if (!list._sid) { renderSharedHint(); return; }
   markSharedSeen(list._sid);
   if (reopen) { openList(currentListIdx); return; }
   renderSharedHint();
@@ -1814,6 +1819,22 @@ function stopSharing(list) {
     }
     showInfoToast(t('shareStopped')(list.name));
   });
+}
+
+// כל המשתתפים עזבו ונשאר רק הבעלים: אין עם מי לשתף, והרשימה חוזרת להיות אישית שלו
+async function revertToPersonal(sid) {
+  const list = data.lists.find(l => l._sid === sid);
+  if (!list) return;
+  // קודם שומרים אותה אצלי ורק אז מוחקים את המסמך המשותף, כדי שלא תלך לאיבוד
+  delete list._sid;
+  sharedState.delete(sid);
+  await save();
+  try {
+    await deleteDoc(doc(db, "shared_lists", sid));
+  } catch(e) {
+    console.error('שגיאת מחיקת רשימה משותפת:', e);
+  }
+  showInfoToast(t('sharedAllLeft')(list.name));
 }
 
 // 🗑 על רשימה משותפת: הבעלים מוחק אותה לכולם (עותק נשמר בארכיון שלו), משתתף רק עוזב
