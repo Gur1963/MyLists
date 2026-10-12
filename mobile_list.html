@@ -293,6 +293,11 @@
     padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
     font-family: inherit; white-space: nowrap;
   }
+  .shared-hint {
+    background: #eaf1fe; padding: 7px 14px; font-size: 12px; color: #2f6fed;
+    text-align: start; border-bottom: 1px solid #c9dbfb; line-height: 1.5;
+  }
+  .shared-hint .upd { color: #667; }
   .base-section-title {
     font-size: 13px; font-weight: 700; color: #8e44ad;
     margin: 18px 4px 10px;
@@ -365,7 +370,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.0.12</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.1.0</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -470,6 +475,8 @@
         <span data-i18n="baseHint">רשימת בסיס – לעריכה בלבד, משמשת להעתקה לרשימות חדשות</span>
         <button class="base-hint-btn" onclick="createFromCurrentBase()" data-i18n="createFromBase">+ צור רשימה מזו</button>
       </div>
+
+      <div class="shared-hint" id="shared-hint" style="display:none"></div>
 
       <!-- add bar: shown/hidden by type -->
       <div class="add-bar-simple" id="add-bar-shop">
@@ -594,7 +601,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, query, where, onSnapshot, runTransaction, updateDoc, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -721,6 +728,23 @@ const I18N = {
     sendTitle: name => `📨 שליחת "${name}"`, sendHint: 'הרשימה תישלח נקייה, בלי סימוני "בוצע"',
     noOtherUsers: 'אין משתמשים אחרים ברשימת המורשים', sentTo: who => `נשלח ל-${who} ✓`,
     ntfyTitle: 'רשימה חדשה', ntfyMsg: from => `מאת ${from}. פתח את האפליקציה כדי לקבל או לדחות.`,
+    modeCopy: '📄 שלח עותק', modeShare: '👥 שתף רשימה',
+    shareHint: 'כל מי שתסמן יראה את הרשימה ויוכל לערוך אותה יחד איתך',
+    shareBtn: 'שתף', shareUpdateBtn: 'עדכן שיתוף', leaveBtn: 'עזוב רשימה',
+    shareNoReminders: 'אי אפשר לשתף רשימת תזכורות. אפשר לשלוח עותק שלה.',
+    sharedByOwner: name => `הרשימה שותפה על ידי ${name}. רק מי ששיתף יכול להוסיף משתתפים.`,
+    sharedMembers: 'משתתפים:', sharedYou: 'אני',
+    sharedWith: names => `👥 משותפת עם: ${names}`, sharedUpdatedBy: (name, when) => `עודכן ע"י ${name}, ${when}`,
+    sharedBadgeTitle: names => `משותפת עם: ${names}`, sharedNew: 'עודכן',
+    sharedDone: name => `"${name}" משותפת עכשיו ✓`, shareUpdated: 'השיתוף עודכן ✓',
+    shareStopped: name => `השיתוף של "${name}" הופסק. הרשימה נשארה אצלך.`,
+    sharedRemoved: name => `הרשימה "${name}" כבר לא משותפת איתך`,
+    sharedLeft: name => `עזבת את "${name}"`,
+    confirmStopShare: name => `להפסיק לשתף את "${name}"? היא תישאר רק אצלך ותיעלם אצל שאר המשתתפים.`,
+    confirmLeave: name => `לעזוב את הרשימה המשותפת "${name}"? היא תיעלם אצלך ותישאר אצל שאר המשתתפים.`,
+    confirmDeleteShared: name => `למחוק את "${name}"? הרשימה משותפת - היא תימחק אצל כל המשתתפים.`,
+    errShare: 'שגיאת שיתוף: ', errSharedSave: 'השינוי ברשימה המשותפת עוד לא נשמר - ינסה שוב',
+    ntfyShareTitle: 'רשימה משותפת', ntfyShareMsg: from => `${from} שיתף איתך רשימה. היא מופיעה באפליקציה.`,
     inboxReceived: '📨 קיבלת רשימה חדשה:', fromName: name => `מאת ${name}`, accept: 'קבל', reject: 'דחה',
     addedToLists: name => `"${name}" נוספה לרשימות שלך ✓`, confirmReject: name => `לדחות את "${name}"?`,
     changeName: 'שנה שם', addName: 'הוסף שם', statusActive: 'פעיל', statusSuspended: 'מושהה',
@@ -804,6 +828,23 @@ const I18N = {
     sendTitle: name => `📨 Send "${name}"`, sendHint: 'The list is sent clean, without "done" marks',
     noOtherUsers: 'There are no other approved users', sentTo: who => `Sent to ${who} ✓`,
     ntfyTitle: 'New list', ntfyMsg: from => `From ${from}. Open the app to accept or decline.`,
+    modeCopy: '📄 Send a copy', modeShare: '👥 Share list',
+    shareHint: 'Everyone you tick will see the list and can edit it together with you',
+    shareBtn: 'Share', shareUpdateBtn: 'Update sharing', leaveBtn: 'Leave list',
+    shareNoReminders: "A reminders list can't be shared. You can send a copy of it.",
+    sharedByOwner: name => `This list is shared by ${name}. Only the person who shared it can add members.`,
+    sharedMembers: 'Members:', sharedYou: 'me',
+    sharedWith: names => `👥 Shared with: ${names}`, sharedUpdatedBy: (name, when) => `Updated by ${name}, ${when}`,
+    sharedBadgeTitle: names => `Shared with: ${names}`, sharedNew: 'updated',
+    sharedDone: name => `"${name}" is now shared ✓`, shareUpdated: 'Sharing updated ✓',
+    shareStopped: name => `Stopped sharing "${name}". The list stays with you.`,
+    sharedRemoved: name => `"${name}" is no longer shared with you`,
+    sharedLeft: name => `You left "${name}"`,
+    confirmStopShare: name => `Stop sharing "${name}"? It will stay only with you and disappear for the other members.`,
+    confirmLeave: name => `Leave the shared list "${name}"? It will disappear for you and stay with the other members.`,
+    confirmDeleteShared: name => `Delete "${name}"? This list is shared - it will be deleted for all members.`,
+    errShare: 'Sharing error: ', errSharedSave: "The change to the shared list isn't saved yet - will retry",
+    ntfyShareTitle: 'Shared list', ntfyShareMsg: from => `${from} shared a list with you. It appears in the app.`,
     inboxReceived: '📨 You got a new list:', fromName: name => `From ${name}`, accept: 'Accept', reject: 'Decline',
     addedToLists: name => `"${name}" was added to your lists ✓`, confirmReject: name => `Decline "${name}"?`,
     changeName: 'Rename', addName: 'Add name', statusActive: 'Active', statusSuspended: 'Suspended',
@@ -849,6 +890,7 @@ function applyI18n() {
   if (active === 'screen-detail' && data.lists[currentListIdx]) {
     const list = data.lists[currentListIdx];
     document.getElementById('base-toggle-btn').title = t(list.isBase ? 'unmarkBaseTitle' : 'markBaseTitle');
+    renderSharedHint();
     if (list.type === 'stocks') {
       document.getElementById('new-stock-analyst').placeholder = list.stockMode === 'portfolio' ? t('notePh') : t('analystPh');
     }
@@ -869,8 +911,10 @@ function toggleLanguage() {
 
 async function save() {
   if (!DOC) return;
+  saveSharedLists();
   try {
-    await setDoc(DOC, data);
+    // רשימות משותפות נשמרות במסמך משלהן (shared_lists) ולא בחשבון האישי
+    await setDoc(DOC, { ...data, lists: data.lists.filter(l => !l._sid) });
   } catch(e) {
     alert(t('errSave') + e.message);
   }
@@ -1017,7 +1061,9 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('type-reminders').style.display = isAdminUser ? '' : 'none';
     showAppScreen();
     loadInbox();
+    startSharedSync();
   } else {
+    stopSharedSync();
     currentUser = null;
     DOC = null;
     isAdminUser = false;
@@ -1078,6 +1124,10 @@ function renderHome() {
     const typeColor = list.isBase ? '#8e44ad' : isTask ? '#27ae60' : isLinks ? '#e67e22' : isStocks ? '#16a085' : isReminders ? '#c0392b' : '#4a90d9';
     const typeLabel = list.isBase ? '⭐ ' + t('baseBadge') : isTask ? '✅ ' + t('typeTasks') : isLinks ? '🔗 ' + t('typeLinks') : isStocks ? '📈 ' + t('typeStocks') : isReminders ? '🔔 ' + t('typeReminders') : '📝 ' + t('typeShop');
     const countText = !total ? t('listEmpty') : list.isBase ? t('itemsCount')(total) : `${done}/${total}`;
+    const meta = sharedMeta(list);
+    const sharedBadge = !meta ? '' :
+      `<span class="type-badge" style="background:#2f6fed18;color:#2f6fed" title="${escHtml(t('sharedBadgeTitle')(otherMemberNames(meta)))}">👥 ${meta.members.length}</span>` +
+      (sharedUnseen(list._sid) ? `<span style="color:#e74c3c;font-weight:700">● ${t('sharedNew')}</span>` : '');
 
     const card = document.createElement('div');
     card.className = 'list-card';
@@ -1088,6 +1138,7 @@ function renderHome() {
         <div class="list-meta">
           <span class="type-badge" style="background:${typeColor}18;color:${typeColor}">${typeLabel}</span>
           <span>${countText}</span>
+          ${sharedBadge}
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -1172,7 +1223,7 @@ function duplicateList(idx) {
     const val = input.value.trim();
     if (val && listNameTaken(val)) { alert(t('errNameExists')(val)); input.focus(); return; }
     if (val) {
-      const copy = JSON.parse(JSON.stringify(data.lists[idx]));
+      const copy = cleanList(data.lists[idx]);
       copy.name = val;
       copy.items = copy.items.map(it => ({...it, done: false}));
       data.lists.push(copy);
@@ -1184,6 +1235,7 @@ function duplicateList(idx) {
 }
 
 function deleteList(idx) {
+  if (data.lists[idx]._sid) { deleteSharedList(data.lists[idx]); return; }
   if (confirm(t('confirmDeleteList')(data.lists[idx].name))) {
     const [removed] = data.lists.splice(idx, 1);
     data.archive.unshift({ list: removed, deletedAt: Date.now() });
@@ -1216,45 +1268,98 @@ function showInfoToast(text) {
 
 async function openSendList(idx) {
   const list = data.lists[idx];
-  const myEmail = currentUser.email.toLowerCase();
   let users = [];
   try {
     const snap = await getDoc(CONFIG_DOC);
     users = normalizeList(snap.exists() ? snap.data().allowed : [])
-      .filter(u => u.active && u.email.toLowerCase() !== myEmail);
+      .filter(u => u.active && u.email.toLowerCase() !== myEmail());
   } catch(e) {
     alert(t('errLoadUsers') + e.message);
     return;
   }
+  // שליחת עותק היא ברירת המחדל; שיתוף הוא מצב נפרד שבוחרים בו במפורש
+  const meta = sharedMeta(list);
+  const isOwner = !meta || meta.ownerEmail === myEmail();
+  let mode = 'copy';
 
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-  const rows = users.length
-    ? users.map((u, k) => `<button data-k="${k}" class="send-user-row" style="display:block;width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid #e3e8f0;border-radius:12px;background:#f7f9fc;font-size:15px;text-align:start;cursor:pointer;font-family:inherit">${u.name ? `<div style="font-weight:600;color:#222">${escHtml(u.name)}</div><div style="font-size:11px;color:#999"><bdi>${escHtml(u.email)}</bdi></div>` : `<div><bdi>${escHtml(u.email)}</bdi></div>`}</button>`).join('')
-    : `<p style="color:#888;font-size:14px;margin-bottom:12px">${t('noOtherUsers')}</p>`;
+  const modeBtnStyle = 'flex:1;padding:10px 6px;border:1px solid #ddd;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit';
+  const rowStyle = 'width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid #e3e8f0;border-radius:12px;background:#f7f9fc;font-size:15px;text-align:start;cursor:pointer;font-family:inherit';
+  const userLabel = u => u.name
+    ? `<div style="font-weight:600;color:#222">${escHtml(u.name)}</div><div style="font-size:11px;color:#999"><bdi>${escHtml(u.email)}</bdi></div>`
+    : `<div><bdi>${escHtml(u.email)}</bdi></div>`;
+  const hint = text => `<p style="font-size:12px;color:#999;margin-bottom:14px;text-align:center">${text}</p>`;
+  const noUsers = `<p style="color:#888;font-size:14px;margin-bottom:12px">${t('noOtherUsers')}</p>`;
   modal.innerHTML = `
     <div style="background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:80vh;overflow-y:auto">
-      <p style="font-size:16px;font-weight:700;margin-bottom:6px;color:#222;text-align:center">${t('sendTitle')(escHtml(list.name))}</p>
-      <p style="font-size:12px;color:#999;margin-bottom:16px;text-align:center">${t('sendHint')}</p>
-      ${rows}
+      <p style="font-size:16px;font-weight:700;margin-bottom:12px;color:#222;text-align:center">${t('sendTitle')(escHtml(list.name))}</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="send-mode" data-mode="copy" style="${modeBtnStyle}">${t('modeCopy')}</button>
+        <button class="send-mode" data-mode="share" style="${modeBtnStyle}">${t('modeShare')}</button>
+      </div>
+      <div id="send-body"></div>
       <button id="send-cancel" style="width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px">${t('cancelBtn')}</button>
     </div>`;
   document.body.appendChild(modal);
+  const body = modal.querySelector('#send-body');
   const close = () => modal.remove();
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
   modal.querySelector('#send-cancel').onclick = close;
-  modal.querySelectorAll('.send-user-row').forEach(btn => {
-    btn.onclick = async () => {
-      const toUser = users[+btn.dataset.k];
-      close();
-      await sendListTo(list, toUser);
-    };
-  });
+
+  function renderBody() {
+    modal.querySelectorAll('.send-mode').forEach(b => {
+      const on = b.dataset.mode === mode;
+      b.style.background = on ? '#2f6fed' : '#fff';
+      b.style.color = on ? '#fff' : '#555';
+      b.style.borderColor = on ? '#2f6fed' : '#ddd';
+    });
+    if (mode === 'copy') {
+      body.innerHTML = hint(t('sendHint')) + (users.length
+        ? users.map((u, k) => `<button data-k="${k}" class="send-user-row" style="display:block;${rowStyle}">${userLabel(u)}</button>`).join('')
+        : noUsers);
+      body.querySelectorAll('.send-user-row').forEach(btn => {
+        btn.onclick = async () => {
+          const toUser = users[+btn.dataset.k];
+          close();
+          await sendListTo(list, toUser);
+        };
+      });
+    } else if (list.type === 'reminders') {
+      body.innerHTML = hint(t('shareNoReminders'));
+    } else if (!isOwner) {
+      // רק מי ששיתף מנהל את המשתתפים; משתתף אחר יכול רק לעזוב
+      const names = meta.members.map(m => m === myEmail() ? t('sharedYou') : memberName(meta, m)).join(', ');
+      body.innerHTML = hint(t('sharedByOwner')(escHtml(meta.ownerName || meta.ownerEmail))) +
+        `<p style="font-size:14px;color:#444;margin-bottom:14px">${t('sharedMembers')} ${escHtml(names)}</p>
+         <button id="share-leave" style="width:100%;padding:13px;border:1px solid #e74c3c;border-radius:12px;background:#fff;color:#e74c3c;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">${t('leaveBtn')}</button>`;
+      body.querySelector('#share-leave').onclick = () => { close(); leaveSharedList(list); };
+    } else {
+      const current = new Set(meta ? meta.members : []);
+      body.innerHTML = hint(t('shareHint')) + (users.length
+        ? users.map((u, k) => `<label style="display:flex;align-items:center;gap:10px;${rowStyle}">
+            <input type="checkbox" data-k="${k}"${current.has(u.email.toLowerCase()) ? ' checked' : ''} style="width:20px;height:20px;flex-shrink:0">
+            <div style="min-width:0">${userLabel(u)}</div></label>`).join('') +
+          `<button id="share-confirm" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2f6fed;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:4px 0 8px">${t(meta ? 'shareUpdateBtn' : 'shareBtn')}</button>`
+        : noUsers);
+      const confirmBtn = body.querySelector('#share-confirm');
+      if (confirmBtn) confirmBtn.onclick = () => {
+        const selected = [...body.querySelectorAll('input:checked')].map(cb => users[+cb.dataset.k]);
+        if (!meta && !selected.length) return;
+        close();
+        if (!meta) shareList(list, selected);
+        else if (!selected.length) stopSharing(list);
+        else updateShareMembers(list, selected);
+      };
+    }
+  }
+  modal.querySelectorAll('.send-mode').forEach(b => { b.onclick = () => { mode = b.dataset.mode; renderBody(); }; });
+  renderBody();
 }
 
 async function sendListTo(list, toUser) {
   const toEmail = toUser.email;
-  const copy = JSON.parse(JSON.stringify(list));
+  const copy = cleanList(list);
   copy.items = (copy.items || []).map(it => ({ ...it, done: false }));
   const fromName = currentUser.displayName || currentUser.email;
   try {
@@ -1276,17 +1381,17 @@ async function sendListTo(list, toUser) {
 // התראת ntfy לערוץ הפרטי של המקבל (אותו ערוץ של התזכורות).
 // אם ההתראה נכשלה - הרשימה כבר נשלחה, והבאנר יופיע אצלו בכל מקרה.
 // את השפה שהמקבל בחר אין לנו גישה לדעת, לכן ההתראה נשלחת בשתי השפות
-async function notifyListSent(topic, list, fromName) {
+async function notifyListSent(topic, list, fromName, titleKey = 'ntfyTitle', msgKey = 'ntfyMsg', tag = 'incoming_envelope') {
   try {
     // פרסום בפורמט JSON לכתובת הראשית של ntfy - מאפשר עברית בכותרת בלי קידוד headers
     await fetch('https://ntfy.sh/', {
       method: 'POST',
       body: JSON.stringify({
         topic,
-        title: `${I18N.he.ntfyTitle} / ${I18N.en.ntfyTitle}: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
-        message: `${I18N.he.ntfyMsg(fromName)}\n${I18N.en.ntfyMsg(fromName)}`,
+        title: `${I18N.he[titleKey]} / ${I18N.en[titleKey]}: ${list.emoji || ''} ${list.name}`.replace(/\s+/g, ' '),
+        message: `${I18N.he[msgKey](fromName)}\n${I18N.en[msgKey](fromName)}`,
         priority: 4,
-        tags: ['incoming_envelope'],
+        tags: [tag],
         click: location.origin + location.pathname
       })
     });
@@ -1352,6 +1457,391 @@ function rejectInbox(entry) {
     inboxEntries = inboxEntries.filter(x => x.id !== entry.id);
     renderInbox();
   });
+}
+
+// ── Shared lists ──────────────────────────────────────────────────────────
+// רשימה משותפת יושבת במסמך משלה ב-shared_lists (ולא בחשבון של אחד המשתתפים):
+// { ownerEmail, ownerName, members:[emails], memberInfo:[{email,name}], list, createdAt,
+//   updatedAt, updatedBy, updatedByEmail }.
+// בזיכרון היא חלק מ-data.lists כמו כל רשימה ומסומנת ב-_sid (מזהה המסמך), כך ששאר הקוד
+// עובד עליה בלי שינוי. save() מפריד: רשימה עם _sid נכתבת למסמך המשותף ולא לחשבון האישי.
+const SHARED_COL = collection(db, "shared_lists");
+const SHARED_SEEN_KEY = 'mylists-shared-seen';
+const sharedState = new Map();   // sid -> { base, meta, dirty, saving, creating }
+let sharedUnsub = null;
+
+function myEmail() { return currentUser.email.toLowerCase(); }
+function myName()  { return currentUser.displayName || currentUser.email; }
+
+// השוואה שלא תלויה בסדר המפתחות (Firestore לא שומר על הסדר שלהם)
+function stableStr(v) {
+  if (v === undefined) return 'undefined';
+  if (Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort()
+      .map(k => JSON.stringify(k) + ':' + stableStr(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+}
+
+// עותק נקי של רשימה, בלי הסימון הפנימי _sid - לכתיבה לענן, לשכפול ולשליחה
+function cleanList(list) {
+  const c = JSON.parse(JSON.stringify(list));
+  delete c._sid;
+  return c;
+}
+
+// המיזוג בין משתתפים נעשה פריט-פריט, ולכן לכל פריט ברשימה משותפת יש מזהה קבוע
+function ensureItemIds(list) {
+  if (!Array.isArray(list.items)) list.items = [];
+  const seen = new Set();
+  list.items.forEach(it => {
+    if (!it.id || seen.has(it.id)) it.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    seen.add(it.id);
+  });
+}
+
+// מיזוג משולש: base = המצב האחרון שהיה ידוע לי מהענן, local = מה שיש אצלי עכשיו,
+// remote = מה שיש בענן עכשיו. מה ששיניתי אני (local שונה מ-base) גובר; כל השאר נלקח
+// מהענן. כך הוספה של משתתף אחד לא מוחקת סימון של משתתף אחר.
+function mergeShared(base, local, remote) {
+  const out = {};
+  const keys = new Set([...Object.keys(base), ...Object.keys(local), ...Object.keys(remote)]);
+  keys.delete('items'); keys.delete('_sid');
+  keys.forEach(k => {
+    const v = stableStr(local[k]) !== stableStr(base[k]) ? local[k] : remote[k];
+    if (v !== undefined) out[k] = JSON.parse(JSON.stringify(v));
+  });
+  const byId = arr => new Map((arr || []).map(it => [it.id, it]));
+  const bMap = byId(base.items), lMap = byId(local.items), rMap = byId(remote.items);
+  const items = [];
+  (remote.items || []).forEach(r => {
+    const b = bMap.get(r.id), l = lMap.get(r.id);
+    if (b && !l) return;                                    // מחקתי אותו אצלי
+    items.push(b && l && stableStr(l) !== stableStr(b) ? l : r);
+  });
+  // פריטים שהוספתי ועוד לא הגיעו לענן - נכנסים במקום שבו הם אצלי
+  (local.items || []).forEach((l, i) => {
+    if (!bMap.has(l.id) && !rMap.has(l.id)) items.splice(Math.min(i, items.length), 0, l);
+  });
+  out.items = JSON.parse(JSON.stringify(items));
+  return out;
+}
+
+// מעדכן רשימה קיימת בזיכרון בלי להחליף את האובייקטים שלה, כי קוד אחר (ביטול מחיקה,
+// עריכה פתוחה, השהיית המיון אחרי סימון) מחזיק הפניות לרשימה ולפריטים שלה
+function applyListInPlace(target, merged) {
+  Object.keys(target).forEach(k => { if (k !== '_sid' && k !== 'items' && !(k in merged)) delete target[k]; });
+  Object.keys(merged).forEach(k => { if (k !== 'items') target[k] = merged[k]; });
+  const existing = new Map((target.items || []).map(it => [it.id, it]));
+  const items = (merged.items || []).map(mi => {
+    const ex = existing.get(mi.id);
+    if (!ex) return mi;
+    Object.keys(ex).forEach(k => delete ex[k]);
+    return Object.assign(ex, mi);
+  });
+  if (!Array.isArray(target.items)) target.items = [];
+  target.items.length = 0;
+  target.items.push(...items);
+}
+
+function sharedMeta(list) {
+  return (list && list._sid && sharedState.get(list._sid)?.meta) || null;
+}
+function memberName(meta, email) {
+  const info = (meta.memberInfo || []).find(m => m.email === email);
+  return (info && info.name) || email;
+}
+function otherMemberNames(meta) {
+  return meta.members.filter(m => m !== myEmail()).map(m => memberName(meta, m)).join(', ');
+}
+
+// "ראיתי" נשמר במכשיר: עד איזה עדכון של כל רשימה משותפת כבר צפיתי
+function getSharedSeen() {
+  try { return JSON.parse(localStorage.getItem(SHARED_SEEN_KEY)) || {}; } catch(e) { return {}; }
+}
+function markSharedSeen(sid) {
+  const meta = sharedState.get(sid)?.meta;
+  if (!meta) return;
+  const seen = getSharedSeen();
+  seen[sid] = meta.updatedAt || 0;
+  try { localStorage.setItem(SHARED_SEEN_KEY, JSON.stringify(seen)); } catch(e) {}
+}
+function sharedUnseen(sid) {
+  const meta = sharedState.get(sid)?.meta;
+  return !!meta && meta.updatedByEmail !== myEmail() && (meta.updatedAt || 0) > (getSharedSeen()[sid] || 0);
+}
+
+function fmtWhen(ts) {
+  const d = new Date(ts), loc = I18N[curLang()].dateLocale;
+  const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString()
+    ? time
+    : `${d.toLocaleDateString(loc, { day: 'numeric', month: 'numeric' })} ${time}`;
+}
+
+// הפס שמתחת לכותרת הרשימה: עם מי היא משותפת ומי עדכן אותה לאחרונה
+function renderSharedHint() {
+  const el = document.getElementById('shared-hint');
+  const meta = sharedMeta(data.lists[currentListIdx]);
+  if (!meta) { el.style.display = 'none'; return; }
+  let html = escHtml(t('sharedWith')(otherMemberNames(meta) || '-'));
+  if (meta.updatedAt && meta.updatedBy) {
+    html += ` <span class="upd">· ${escHtml(t('sharedUpdatedBy')(meta.updatedBy, fmtWhen(meta.updatedAt)))}</span>`;
+  }
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+// האזנה חיה לכל הרשימות שאני משתתף בהן - שינוי של משתתף אחר מגיע בלי לרענן
+function startSharedSync() {
+  stopSharedSync();
+  const q = query(SHARED_COL, where('members', 'array-contains', myEmail()));
+  sharedUnsub = onSnapshot(q, snap => {
+    const changed = new Set();
+    let reopen = false;
+    snap.docChanges()
+      .slice().sort((a, b) => (a.doc.data().createdAt || 0) - (b.doc.data().createdAt || 0))
+      .forEach(ch => {
+        if (ch.type === 'removed') { dropShared(ch.doc.id); return; }
+        const res = upsertShared(ch.doc.id, ch.doc.data());
+        if (res.content) changed.add(ch.doc.id);
+        if (res.structural) reopen = true;
+      });
+    refreshSharedUI(changed, reopen);
+  }, e => console.error('שגיאת סנכרון רשימות משותפות:', e));
+}
+
+function stopSharedSync() {
+  if (sharedUnsub) { sharedUnsub(); sharedUnsub = null; }
+  sharedState.clear();
+}
+
+// מצב חדש של רשימה משותפת הגיע מהענן. מחזיר מה השתנה אצלי בעקבותיו
+function upsertShared(sid, d) {
+  const remote = d.list || {};
+  if (!Array.isArray(remote.items)) remote.items = [];
+  let st = sharedState.get(sid);
+  if (!st) { st = { base: cleanList(remote), dirty: false, saving: false }; sharedState.set(sid, st); }
+  st.meta = {
+    ownerEmail: d.ownerEmail, ownerName: d.ownerName,
+    members: d.members || [], memberInfo: d.memberInfo || [],
+    updatedAt: d.updatedAt || 0, updatedBy: d.updatedBy || '', updatedByEmail: d.updatedByEmail || ''
+  };
+  const listObj = data.lists.find(l => l._sid === sid);
+  if (!listObj) {
+    const fresh = cleanList(remote);
+    fresh._sid = sid;
+    data.lists.push(fresh);
+    st.base = cleanList(remote);
+    return { content: true, structural: false };
+  }
+  ensureItemIds(listObj);
+  const before = cleanList(listObj);
+  applyListInPlace(listObj, mergeShared(st.base, before, remote));
+  st.base = cleanList(remote);
+  const shape = l => `${l.type}|${!!l.isBase}|${l.stockMode}`;
+  return {
+    content: stableStr(before) !== stableStr(cleanList(listObj)),
+    structural: shape(before) !== shape(listObj) && data.lists[currentListIdx] === listObj
+  };
+}
+
+// הרשימה כבר לא שלי: נמחקה, הוסרתי ממנה, או שעזבתי
+function dropShared(sid, silent) {
+  const st = sharedState.get(sid);
+  if (st && st.creating) return;
+  sharedState.delete(sid);
+  const idx = data.lists.findIndex(l => l._sid === sid);
+  if (idx < 0) return;
+  const [removed] = data.lists.splice(idx, 1);
+  const onDetail = document.querySelector('.screen.active')?.id === 'screen-detail';
+  if (currentListIdx === idx) {
+    currentListIdx = null;
+    if (onDetail) goHome();
+  } else if (currentListIdx > idx) {
+    currentListIdx--;
+  }
+  if (!silent) showInfoToast(t('sharedRemoved')(removed.name));
+  if (document.querySelector('.screen.active')?.id === 'screen-home') renderHome();
+}
+
+function refreshSharedUI(changed, reopen) {
+  const active = document.querySelector('.screen.active')?.id;
+  if (active === 'screen-home') renderHome();
+  if (active !== 'screen-detail') return;
+  const list = data.lists[currentListIdx];
+  if (!list || !list._sid) return;
+  markSharedSeen(list._sid);
+  if (reopen) { openList(currentListIdx); return; }
+  renderSharedHint();
+  if (!changed.has(list._sid)) return;
+  document.getElementById('detail-icon').textContent  = list.emoji;
+  document.getElementById('detail-title').textContent = list.name;
+  // לא מציירים מחדש באמצע עריכה של פריט - העריכה עצמה תצייר כשהיא תסתיים
+  const ae = document.activeElement;
+  const editing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest('#items-list');
+  if (!editing) renderItems();
+}
+
+// נקרא מתוך save(): כל רשימה משותפת שהשתנתה אצלי נכתבת למסמך המשותף שלה
+function saveSharedLists() {
+  if (!currentUser) return;
+  data.lists.forEach(l => {
+    const st = l._sid && sharedState.get(l._sid);
+    if (!st || st.creating) return;
+    ensureItemIds(l);
+    if (stableStr(cleanList(l)) === stableStr(st.base)) return;
+    st.dirty = true;
+    if (!st.saving) flushShared(l._sid);
+  });
+}
+
+async function flushShared(sid) {
+  const st = sharedState.get(sid);
+  if (!st) return;
+  st.saving = true;
+  const ref = doc(db, "shared_lists", sid);
+  try {
+    while (st.dirty) {
+      st.dirty = false;
+      const listObj = data.lists.find(l => l._sid === sid);
+      if (!listObj) break;
+      const base = st.base;
+      const local = cleanList(listObj);
+      // בתוך טרנזקציה: קוראים את המצב העדכני בענן וממזגים אליו רק את מה ששיניתי
+      const merged = await runTransaction(db, async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw Object.assign(new Error('shared list is gone'), { code: 'shared-gone' });
+        const m = mergeShared(base, local, snap.data().list || {});
+        tx.update(ref, { list: m, updatedAt: Date.now(), updatedBy: myName(), updatedByEmail: myEmail() });
+        return m;
+      });
+      // ייתכן שבזמן הכתיבה שיניתי עוד משהו - משמרים אותו מעל מה שנכתב
+      const cur = data.lists.find(l => l._sid === sid);
+      if (!cur || sharedState.get(sid) !== st) break;
+      ensureItemIds(cur);
+      applyListInPlace(cur, mergeShared(local, cleanList(cur), merged));
+      st.base = merged;
+      if (stableStr(cleanList(cur)) !== stableStr(merged)) st.dirty = true;
+    }
+  } catch(e) {
+    if (e.code !== 'shared-gone') {
+      console.error('שגיאת שמירת רשימה משותפת:', e);
+      showInfoToast(t('errSharedSave'));
+    }
+  } finally {
+    st.saving = false;
+  }
+}
+
+// שינוי שלא נשמר (למשל בלי קליטה) נשלח שוב כשהחיבור חוזר
+window.addEventListener('online', () => saveSharedLists());
+
+const shareNotify = (users, list) => users.filter(u => u.ntfyTopic).forEach(u =>
+  notifyListSent(u.ntfyTopic, list, myName(), 'ntfyShareTitle', 'ntfyShareMsg', 'busts_in_silhouette'));
+const memberInfoOf = users => [
+  { email: myEmail(), name: myName() },
+  ...users.map(u => ({ email: u.email.toLowerCase(), name: u.name || '' }))
+];
+
+// הופך רשימה אישית לרשימה משותפת: היא עוברת מהחשבון שלי למסמך משותף
+async function shareList(list, users) {
+  const ref = doc(SHARED_COL);
+  ensureItemIds(list);
+  const clean = cleanList(list);
+  const now = Date.now();
+  const info = memberInfoOf(users);
+  const meta = {
+    ownerEmail: myEmail(), ownerName: myName(),
+    members: info.map(m => m.email), memberInfo: info,
+    createdAt: now, updatedAt: now, updatedBy: myName(), updatedByEmail: myEmail()
+  };
+  list._sid = ref.id;
+  sharedState.set(ref.id, { base: clean, meta, dirty: false, saving: false, creating: true });
+  try {
+    await setDoc(ref, { ...meta, list: clean });
+  } catch(e) {
+    // היצירה נכשלה - הרשימה נשארת אישית כמו שהייתה
+    delete list._sid;
+    sharedState.delete(ref.id);
+    renderHome();
+    alert(t('errShare') + e.message);
+    return;
+  }
+  sharedState.get(ref.id).creating = false;
+  await save();
+  renderHome();
+  if (data.lists[currentListIdx] === list) renderSharedHint();
+  showInfoToast(t('sharedDone')(list.name));
+  shareNotify(users, list);
+}
+
+async function updateShareMembers(list, users) {
+  const st = sharedState.get(list._sid);
+  const prev = new Set(st.meta.members);
+  const info = memberInfoOf(users);
+  try {
+    await updateDoc(doc(db, "shared_lists", list._sid), { members: info.map(m => m.email), memberInfo: info });
+  } catch(e) {
+    alert(t('errShare') + e.message);
+    return;
+  }
+  showInfoToast(t('shareUpdated'));
+  shareNotify(users.filter(u => !prev.has(u.email.toLowerCase())), list);
+}
+
+// הבעלים הסיר את כל המשתתפים: הרשימה חוזרת להיות אישית שלו
+function stopSharing(list) {
+  showConfirm(t('confirmStopShare')(escHtml(list.name)), async yes => {
+    if (!yes) return;
+    const sid = list._sid;
+    // קודם שומרים אותה אצלי ורק אז מוחקים את המסמך המשותף, כדי שלא תלך לאיבוד
+    delete list._sid;
+    sharedState.delete(sid);
+    renderHome();
+    if (data.lists[currentListIdx] === list) renderSharedHint();
+    await save();
+    try {
+      await deleteDoc(doc(db, "shared_lists", sid));
+    } catch(e) {
+      alert(t('errShare') + e.message);
+      return;
+    }
+    showInfoToast(t('shareStopped')(list.name));
+  });
+}
+
+// 🗑 על רשימה משותפת: הבעלים מוחק אותה לכולם (עותק נשמר בארכיון שלו), משתתף רק עוזב
+async function deleteSharedList(list) {
+  const st = sharedState.get(list._sid);
+  if (st && st.meta.ownerEmail !== myEmail()) { leaveSharedList(list); return; }
+  if (!confirm(t('confirmDeleteShared')(list.name))) return;
+  const sid = list._sid;
+  sharedState.delete(sid);
+  data.lists.splice(data.lists.indexOf(list), 1);
+  data.archive.unshift({ list: cleanList(list), deletedAt: Date.now() });
+  renderHome();
+  updateArchiveBadge();
+  await save();
+  try {
+    await deleteDoc(doc(db, "shared_lists", sid));
+  } catch(e) {
+    alert(t('errShare') + e.message);
+  }
+}
+
+async function leaveSharedList(list) {
+  if (!confirm(t('confirmLeave')(list.name))) return;
+  const sid = list._sid;
+  try {
+    await updateDoc(doc(db, "shared_lists", sid), { members: arrayRemove(myEmail()) });
+  } catch(e) {
+    alert(t('errShare') + e.message);
+    return;
+  }
+  dropShared(sid, true);
+  showInfoToast(t('sharedLeft')(list.name));
 }
 
 // בדיקה מחדש כשחוזרים לאפליקציה (למשל אחרי שהייתה פתוחה ברקע)
@@ -1429,7 +1919,8 @@ function restoreArchivedList(i) {
 
 function purgeArchivedList(i) {
   const list = data.archive[i].list;
-  showConfirm(t('confirmPurge')(list.name), () => {
+  showConfirm(t('confirmPurge')(list.name), yes => {
+    if (!yes) return;
     data.archive.splice(i, 1);
     save(); renderArchive(); updateArchiveBadge();
   });
@@ -1623,6 +2114,8 @@ function openList(idx) {
   baseBtn.style.opacity = list.isBase ? '1' : '.55';
   baseBtn.title = t(list.isBase ? 'unmarkBaseTitle' : 'markBaseTitle');
   document.getElementById('base-hint').style.display = list.isBase ? 'flex' : 'none';
+  if (list._sid) markSharedSeen(list._sid);
+  renderSharedHint();
   document.getElementById('convert-links-btn').style.display = isLinks ? 'flex' : 'none';
 
   document.getElementById('detail-header').style.background =
