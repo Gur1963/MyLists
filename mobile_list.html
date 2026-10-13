@@ -370,7 +370,7 @@
         </div>
         <p id="home-subtitle"></p>
         <p id="user-name" style="font-size:12px;color:#aaa;margin-top:2px"></p>
-        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.1.2</p>
+        <p id="app-version" style="font-size:11px;color:#bbb;margin-top:2px"><span data-i18n="version">גרסה</span> 1.1.3</p>
       </div>
 
       <div class="search-bar" id="home-search-bar">
@@ -467,7 +467,7 @@
         <span class="detail-icon-big" id="detail-icon"></span>
         <span class="detail-title" id="detail-title"></span>
         <button class="back-btn" id="base-toggle-btn" onclick="toggleBaseFlag()" style="font-size:17px">⭐</button>
-        <button class="back-btn" id="convert-links-btn" onclick="convertLinksToItems()" data-i18n-title="convertToItemsTitle" title="הפוך לרשימת פריטים" style="font-size:17px;display:none">📝</button>
+        <button class="back-btn" id="convert-items-btn" onclick="convertToItems()" data-i18n-title="convertToItemsTitle" title="הפוך לרשימת פריטים" style="font-size:17px;display:none">📝</button>
         <button class="back-btn" onclick="shareListWhatsapp()" data-i18n-title="shareWhatsappTitle" title="שלח ב-WhatsApp" style="margin-inline-start:auto;font-size:20px">📤</button>
       </div>
 
@@ -696,6 +696,8 @@ const I18N = {
     baseMarked: 'הרשימה סומנה כרשימת בסיס ⭐', baseUnmarked: 'הרשימה הוחזרה לרשימה רגילה',
     convertToItemsTitle: 'הפוך לרשימת פריטים',
     confirmConvertToItems: 'להפוך את רשימת ההפניות לרשימת פריטים? השמות, הקישורים וההערות נשמרים.',
+    confirmConvertTasks: 'להפוך את רשימת המשימות לרשימת פריטים? השמות, הקישורים וההערות נשמרים.',
+    confirmConvertTasksLossy: 'להפוך את רשימת המשימות לרשימת פריטים? השמות, הקישורים וההערות נשמרים, אבל התאריכים והעדיפויות יימחקו.',
     convertedToItems: 'הרשימה הפכה לרשימת פריטים 📝',
     shareWhatsappTitle: 'שלח ב-WhatsApp', addItemPh: 'הוסף פריט...',
     pricePh: 'שער', analystPh: 'אנליסט', notePh: 'הערה (אופציונלי)',
@@ -797,6 +799,8 @@ const I18N = {
     baseMarked: 'The list is now a base list ⭐', baseUnmarked: 'The list is a regular list again',
     convertToItemsTitle: 'Turn into an items list',
     confirmConvertToItems: 'Turn this links list into an items list? Names, links and notes are kept.',
+    confirmConvertTasks: 'Turn this tasks list into an items list? Names, links and notes are kept.',
+    confirmConvertTasksLossy: 'Turn this tasks list into an items list? Names, links and notes are kept, but dates and priorities will be removed.',
     convertedToItems: 'The list is now an items list 📝',
     shareWhatsappTitle: 'Send via WhatsApp', addItemPh: 'Add item...',
     pricePh: 'Price', analystPh: 'Analyst', notePh: 'Note (optional)',
@@ -2108,15 +2112,22 @@ function toggleBaseFlag() {
   });
 }
 
-// פריט הפניה ופריט רגיל בנויים אותו דבר (text / url / done / notes), לכן מספיק להחליף את סוג הרשימה
-function convertLinksToItems() {
+// פריט הפניה ופריט רגיל בנויים אותו דבר (text / url / done / notes), לכן מספיק להחליף את סוג הרשימה.
+// במשימה יש בנוסף תאריך ועדיפות, שאין להם מקום ברשימת פריטים ולכן הם נמחקים
+function convertToItems() {
   const idx = currentListIdx;
   const list = data.lists[idx];
-  if (!list || list.type !== 'links') return;
-  showConfirm(t('confirmConvertToItems'), yes => {
+  if (!list || (list.type !== 'links' && list.type !== 'tasks')) return;
+  const isTask = list.type === 'tasks';
+  const losesData = isTask && list.items.some(it => it.date || (it.priority && it.priority !== 'none'));
+  const msg = !isTask ? 'confirmConvertToItems' : losesData ? 'confirmConvertTasksLossy' : 'confirmConvertTasks';
+  showConfirm(t(msg), yes => {
     if (!yes) return;
     list.type = 'shop';
-    if (list.emoji === EMOJIS_LINKS[0]) list.emoji = EMOJIS_SHOP[0];
+    if (isTask) {
+      list.items.forEach(it => { delete it.date; delete it.priority; });
+      if (list.emoji === EMOJIS_TASKS[0]) list.emoji = EMOJIS_SHOP[0];
+    } else if (list.emoji === EMOJIS_LINKS[0]) list.emoji = EMOJIS_SHOP[0];
     save();
     showInfoToast(t('convertedToItems'));
     if (currentListIdx === idx) openList(idx);
@@ -2141,7 +2152,7 @@ function openList(idx) {
   document.getElementById('base-hint').style.display = list.isBase ? 'flex' : 'none';
   if (list._sid) markSharedSeen(list._sid);
   renderSharedHint();
-  document.getElementById('convert-links-btn').style.display = isLinks ? 'flex' : 'none';
+  document.getElementById('convert-items-btn').style.display = (isLinks || isTask) ? 'flex' : 'none';
 
   document.getElementById('detail-header').style.background =
     list.isBase ? 'linear-gradient(135deg,#8e44ad,#6c3483)' :
@@ -3330,7 +3341,7 @@ applyStaticI18n();
 Object.assign(window, {
   toggleLanguage,
   openNewListModal, createList, selectType, selectStockMode, editStockItem,
-  openList, goHome, createFromCurrentBase, toggleBaseFlag, convertLinksToItems,
+  openList, goHome, createFromCurrentBase, toggleBaseFlag, convertToItems,
   addItem, addTask, addLink, addStock, addReminder, editReminderItem, aiAnalyze, setPri,
   toggleItem, deleteItem, startEditText, editDate, cyclePriority,
   handleTouchStart, handleTouchEnd,
